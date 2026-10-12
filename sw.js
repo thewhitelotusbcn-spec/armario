@@ -9,6 +9,8 @@ const ARCHIVOS = [
   "index.html",
   "estilos.css",
   "prenda.css",
+  "cristal.css",
+  "cristal.js",
   "app.js",
   "base.js",
   "almacen.js",

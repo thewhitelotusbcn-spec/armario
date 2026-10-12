@@ -3,6 +3,7 @@
 import { iniciarAparato } from "./aparato.js";
 import { $, armario, cargarPrendas, conTransicion } from "./base.js";
 import { cerrarMenu, enlaceDeTarjeta, fotoDeTarjeta, iniciarCatalogo, moverPulgar } from "./catalogo.js";
+import { iniciarCristal } from "./cristal.js";
 import { iniciarMovil } from "./movil.js";
 import { pintarPrenda } from "./prenda.js";
 
@@ -129,6 +130,7 @@ new ResizeObserver(medirBarra).observe($("barra"));
 
 async function iniciar() {
   history.scrollRestoration = "manual";
+  iniciarCristal();
   try {
     await cargarPrendas();
   } catch {

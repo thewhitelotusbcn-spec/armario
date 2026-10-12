@@ -1,0 +1,200 @@
+/* Cristal líquido: el aspecto de los controles, como en los iPhone con iOS 26.
+
+   Va después de las otras dos hojas y cambia solo el material: más transparente, con
+   el canto brillante y, donde el navegador sabe, con efecto de lente (lo añade
+   cristal.js a cada control). Las tarjetas y las fotos siguen lisas: el cristal es para
+   lo que flota encima o se puede pulsar. */
+
+:root {
+  /* Velo: cuánto blanco lleva el cristal. Menos velo = más transparente. */
+  --cristal-velo: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.34) 100%);
+  /* Poco desenfoque: lo de detrás se reconoce, como en el cristal de iOS 26. */
+  --cristal-fondo: blur(3.5px) saturate(185%) brightness(1.06);
+  /* Canto: una línea de luz arriba a la izquierda y otra, más suave, abajo a la derecha. */
+  --cristal-canto:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55),
+    inset 1.2px 1.2px 0.6px -0.6px rgba(255, 255, 255, 0.98),
+    inset -1px -1px 0.6px -0.6px rgba(255, 255, 255, 0.72),
+    inset 0 0 10px rgba(255, 255, 255, 0.3),
+    inset 0 -5px 10px -7px rgba(0, 0, 0, 0.08);
+  --cristal-sombra:
+    0 0 0 0.5px rgba(0, 0, 0, 0.06),
+    0 2px 5px rgba(0, 0, 0, 0.06),
+    0 14px 34px -12px rgba(0, 0, 0, 0.22);
+}
+
+.cristal {
+  background: var(--cristal-velo);
+  -webkit-backdrop-filter: var(--cristal-fondo);
+  backdrop-filter: var(--cristal-fondo);
+  box-shadow: var(--cristal-canto), var(--cristal-sombra);
+}
+
+/* Una barra con nombre propio para los cambios de pantalla deja a su cristal sin ver lo
+   que tiene detrás. El nombre se le pone solo mientras dura el cambio de pantalla. */
+.barra,
+.barra-prenda { view-transition-name: none; }
+
+:root:active-view-transition .barra { view-transition-name: barra; }
+:root:active-view-transition .barra-prenda { view-transition-name: barra-prenda; }
+
+/* Las barras del catálogo llevan texto: algo más de velo y de desenfoque para leerlo bien. */
+.categorias,
+.filtros {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.44) 100%);
+  -webkit-backdrop-filter: blur(7px) saturate(185%) brightness(1.06);
+  backdrop-filter: blur(7px) saturate(185%) brightness(1.06);
+}
+
+/* Al tocarlo, el cristal responde: crece un poco y se enciende. */
+.redondo,
+.capsula,
+.quitar,
+.boton,
+.revision button {
+  transition: transform 0.35s var(--muelle), filter 0.25s, opacity 0.2s, color 0.25s;
+}
+
+.redondo:active,
+.capsula:active,
+.quitar:active,
+.boton:active,
+.revision button:active {
+  transform: scale(1.07);
+  filter: brightness(1.08);
+}
+
+/* Los menús llevan más velo y más desenfoque: encima va texto que hay que poder leer. */
+.menu {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.56) 100%);
+  -webkit-backdrop-filter: blur(22px) saturate(190%);
+  backdrop-filter: blur(22px) saturate(190%);
+}
+
+/* La pastilla de la categoría elegida: una gota de cristal más clara dentro de la barra. */
+.pulgar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.72) 100%);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.9),
+    inset 1px 1px 0.5px -0.5px #ffffff,
+    inset 0 -5px 9px -6px rgba(0, 0, 0, 0.09),
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 2px 6px rgba(0, 0, 0, 0.1),
+    0 10px 20px -10px rgba(0, 0, 0, 0.25);
+}
+
+/* Las categorías sin elegir, algo más oscuras para leerse sobre un cristal más claro. */
+.pildora { color: rgba(60, 60, 67, 0.72); }
+
+/* Bajo la barra el contenido se sigue desvaneciendo, pero menos: tiene que verse a través del cristal. */
+.borde {
+  background: linear-gradient(
+    to bottom,
+    var(--fondo) 0,
+    rgba(255, 255, 255, 0.45) calc(var(--alto-barra, 60px) * 0.5),
+    rgba(255, 255, 255, 0.2) var(--alto-barra, 60px),
+    rgba(255, 255, 255, 0) 100%
+  );
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+/* En la página de una prenda los botones flotan sobre la foto: ahí no se desvanece nada. */
+body:has(#vista-prenda:not([hidden])) .borde { display: none; }
+
+/* Sobre el cristal el texto lleva un halo claro: se lee aunque pase algo oscuro por detrás. */
+.cristal { text-shadow: 0 0 8px rgba(255, 255, 255, 0.7); }
+.cristal .filtro.activo { text-shadow: none; }
+
+/* ---------- Botones ---------- */
+
+/* Botón principal: cristal tintado de oscuro. */
+.boton,
+.filtro.activo {
+  background: linear-gradient(180deg, rgba(64, 64, 68, 0.9) 0%, rgba(24, 24, 26, 0.86) 100%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  backdrop-filter: blur(10px) saturate(180%);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.2),
+    inset 1px 1px 0.5px -0.5px rgba(255, 255, 255, 0.6),
+    inset -1px -1px 0.5px -0.5px rgba(255, 255, 255, 0.2),
+    inset 0 12px 14px -12px rgba(255, 255, 255, 0.38),
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 12px 26px -12px rgba(0, 0, 0, 0.5);
+}
+
+.boton:hover { opacity: 1; }
+
+/* Botón secundario: cristal claro. Sobre blanco lleva un punto de gris para que se vea. */
+.boton.secundario {
+  background: linear-gradient(180deg, rgba(120, 120, 128, 0.1) 0%, rgba(120, 120, 128, 0.2) 100%);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.75),
+    inset 1px 1px 0.5px -0.5px #ffffff,
+    inset -1px -1px 0.5px -0.5px rgba(255, 255, 255, 0.8),
+    inset 0 -6px 10px -8px rgba(0, 0, 0, 0.1),
+    0 0 0 0.5px rgba(0, 0, 0, 0.07),
+    0 8px 18px -10px rgba(0, 0, 0, 0.25);
+}
+
+/* Aviso de ficha sin revisar: «Está bien» en cristal azul y «Corregir» en cristal claro. */
+.revision {
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--acento) 14%, transparent);
+}
+
+.revision button {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.6) 100%);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.9),
+    inset 1px 1px 0.5px -0.5px #ffffff,
+    0 0 0 0.5px color-mix(in srgb, var(--acento) 16%, transparent),
+    0 6px 14px -8px color-mix(in srgb, var(--acento) 55%, transparent);
+}
+
+.revision button:first-child {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--acento) 78%, #ffffff) 0%, var(--acento) 100%);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.28),
+    inset 1px 1px 0.5px -0.5px rgba(255, 255, 255, 0.7),
+    inset 0 10px 12px -10px rgba(255, 255, 255, 0.5),
+    0 8px 18px -8px color-mix(in srgb, var(--acento) 70%, transparent);
+}
+
+/* ---------- Hojas ---------- */
+
+/* Las hojas (editar, copias, móvil) son de cristal y flotan separadas de los bordes. */
+.hoja {
+  border-radius: 34px;
+  background: rgba(242, 242, 247, 0.72);
+  -webkit-backdrop-filter: blur(34px) saturate(180%);
+  backdrop-filter: blur(34px) saturate(180%);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.65),
+    inset 1.2px 1.2px 0.6px -0.6px #ffffff,
+    0 0 0 0.5px rgba(0, 0, 0, 0.08),
+    0 40px 90px -24px rgba(0, 0, 0, 0.42);
+}
+
+.hoja[open]::backdrop { background: rgba(0, 0, 0, 0.2); }
+
+@media (max-width: 699px) {
+  .hoja {
+    width: calc(100vw - 16px);
+    max-height: calc(100svh - 44px);
+    margin: auto 8px max(8px, env(safe-area-inset-bottom));
+    border-radius: 38px;
+    transform: translateY(calc(100% + 24px));
+  }
+
+  @starting-style {
+    .hoja[open] { transform: translateY(calc(100% + 24px)); }
+  }
+}
+
+/* Los grupos de dentro dejan pasar un poco del cristal de la hoja. */
+.campos,
+.movil-aviso,
+.movil-pasos li {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.8);
+}
