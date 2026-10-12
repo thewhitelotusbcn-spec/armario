@@ -14,6 +14,7 @@ const ARCHIVOS = [
   "aparato.js",
   "catalogo.js",
   "combinar.js",
+  "foto.js",
   "movil.js",
   "prenda.js",
   "manifest.webmanifest",

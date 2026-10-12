@@ -149,10 +149,19 @@ export function crearFoto(prenda, perezosa = true) {
   foto.alt = "";
   foto.decoding = "async";
   if (perezosa) foto.loading = "lazy";
+  if (prenda.modelo) foto.classList.add("modelo"); // la lleva puesta un modelo y llena la foto entera
   foto.addEventListener("load", () => foto.classList.add("lista"));
-  // En el taller la foto está en la carpeta del ordenador; en el móvil, en su almacén.
-  foto.src = armario.taller ? `../${prenda.foto_tienda}` : (fotosDelAparato.get(prenda.id) ?? "");
+  foto.src = direccionDeFoto(prenda);
   return foto;
+}
+
+// Dónde está la foto de tienda de una prenda: en el taller, en la carpeta del ordenador;
+// en el móvil, en su almacén.
+function direccionDeFoto(prenda) {
+  if (!armario.taller) return fotosDelAparato.get(prenda.id) ?? "";
+  // Si la foto se ha cambiado, la dirección también cambia: así no se enseña la antigua.
+  const version = prenda.foto_version ? `?v=${prenda.foto_version}` : "";
+  return `../${prenda.foto_tienda}${version}`;
 }
 
 // Hace un cambio en la página con una transición animada, si el navegador lo permite.

@@ -28,6 +28,7 @@ import {
 } from "./base.js";
 import { repintarCatalogo } from "./catalogo.js";
 import { combinaCon, looksCon } from "./combinar.js";
+import { FalloDeFoto, avisarAlTaller, cambiarFoto, prepararImagen, recortar, sePuedeCambiarFoto } from "./foto.js";
 
 const vista = $("vista-prenda");
 const hoja = $("hoja");
@@ -340,6 +341,117 @@ function crearGrupoDeCampos(...campos) {
   return grupo;
 }
 
+// Parte de la hoja de edición para cambiar la foto: la miniatura, el botón y, con una
+// imagen ya elegida, si la prenda la lleva puesta un modelo. La foto nueva se enseña
+// recortada antes de guardar. "alCambiar" avisa cada vez que empieza o acaba un recorte.
+function crearCambioDeFoto(prenda, alCambiar) {
+  let imagen = null;    // la imagen elegida, ya preparada
+  let ocupado = false;  // se está quitando el fondo
+  let direccion = null; // dirección interna de lo que enseña la miniatura
+
+  const miniatura = crear("span", "foto foto-mini");
+  miniatura.append(crearFoto(prenda, false));
+  const aviso = crear("p", "campo-ayuda");
+  aviso.setAttribute("role", "status");
+
+  const entrada = crear("input");
+  entrada.type = "file";
+  entrada.accept = "image/*";
+  entrada.hidden = true;
+  const boton = crear("label", "boton secundario compacto", "Cambiar foto");
+  boton.tabIndex = 0;
+  boton.setAttribute("role", "button");
+  boton.append(entrada);
+  boton.addEventListener("keydown", (evento) => {
+    if (evento.key !== "Enter" && evento.key !== " ") return;
+    evento.preventDefault();
+    entrada.click();
+  });
+  boton.addEventListener("click", avisarAlTaller);
+
+  const conModelo = crear("input", "interruptor");
+  conModelo.type = "checkbox";
+  conModelo.checked = Boolean(prenda.modelo);
+  const filaModelo = crear("label", "campo");
+  filaModelo.append(crear("span", "campo-nombre", "La lleva puesta un modelo"), conModelo);
+  filaModelo.hidden = true;
+
+  // Enseña una imagen en la miniatura (o vuelve a la foto actual de la prenda).
+  function mostrar(contenido) {
+    if (direccion) URL.revokeObjectURL(direccion);
+    direccion = contenido ? URL.createObjectURL(contenido) : null;
+    const foto = contenido ? new Image() : crearFoto(prenda, false);
+    if (contenido) {
+      foto.alt = "";
+      foto.className = "lista";
+      foto.src = direccion;
+    }
+    miniatura.replaceChildren(foto);
+  }
+
+  function ocupar(si) {
+    ocupado = si;
+    entrada.disabled = conModelo.disabled = si;
+    boton.classList.toggle("apagado", si);
+    miniatura.classList.toggle("trabajando", si);
+    alCambiar();
+  }
+
+  async function probar() {
+    ocupar(true);
+    aviso.textContent = "Quitando el fondo…";
+    try {
+      const { foto, dudoso } = await recortar(imagen, conModelo.checked);
+      mostrar(foto);
+      filaModelo.hidden = false;
+      aviso.textContent = dudoso
+        ? "El recorte ha quedado dudoso. Sale mejor con una foto de fondo liso."
+        : "Se cambiará al pulsar Guardar.";
+    } catch (fallo) {
+      imagen = null;
+      mostrar(null);
+      filaModelo.hidden = true;
+      aviso.textContent = fallo instanceof FalloDeFoto ? fallo.message : "No se ha podido quitar el fondo.";
+    }
+    ocupar(false);
+  }
+
+  entrada.addEventListener("change", async () => {
+    const archivo = entrada.files[0];
+    entrada.value = ""; // para poder volver a elegir la misma imagen
+    if (!archivo) return;
+    try {
+      imagen = await prepararImagen(archivo);
+    } catch (fallo) {
+      aviso.textContent = fallo.message;
+      return;
+    }
+    mostrar(imagen);
+    probar();
+  });
+  conModelo.addEventListener("change", () => {
+    if (imagen) probar();
+  });
+
+  const lado = crear("div", "foto-lado");
+  lado.append(boton, aviso);
+  const fila = crear("div", "campo campo-foto");
+  fila.append(miniatura, lado);
+  const grupo = crearGrupoDeCampos(fila, filaModelo);
+
+  return {
+    grupo,
+    ocupado: () => ocupado,
+    // Guarda la foto nueva, si se ha elegido alguna.
+    async guardar() {
+      if (!imagen) return;
+      await cambiarFoto(prenda, imagen, conModelo.checked);
+      imagen = null; // ya está guardada: si luego falla otra cosa, no se repite
+    },
+    soltar: () => direccion && URL.revokeObjectURL(direccion),
+  };
+}
+
 function abrirEdicion(prenda) {
   const nombre = crearEntrada("nombre", prenda.nombre, 80);
   const talla = crearEntrada("talla", prenda.talla, 20);
@@ -366,8 +478,11 @@ function abrirEdicion(prenda) {
   const fallo = crear("p", "hoja-fallo");
   fallo.setAttribute("role", "alert");
   fallo.hidden = true;
+  // Mientras se quita el fondo a una foto nueva no se puede guardar.
+  const foto = sePuedeCambiarFoto() ? crearCambioDeFoto(prenda, () => (guardar.disabled = foto.ocupado())) : null;
   cuerpo.append(
     fallo,
+    ...(foto ? [foto.grupo] : []),
     crearGrupoDeCampos(
       crearCampo("Nombre", nombre),
       crearCampo("Categoría", crearSelector("categoria", CATEGORIAS, prenda.categoria)),
@@ -432,10 +547,11 @@ function abrirEdicion(prenda) {
 
     guardar.disabled = true;
     try {
+      await foto?.guardar();
       await guardarPrenda(prenda.id, cambios);
-    } catch {
+    } catch (motivo) {
       guardar.disabled = false;
-      return avisarFallo(FALLO_AL_GUARDAR);
+      return avisarFallo(motivo instanceof FalloDeFoto ? motivo.message : FALLO_AL_GUARDAR);
     }
     hoja.close();
     repintarCatalogo();
@@ -444,6 +560,7 @@ function abrirEdicion(prenda) {
   });
 
   hoja.replaceChildren(formulario);
+  hoja.addEventListener("close", () => foto?.soltar(), { once: true });
   hoja.showModal();
 }
 
