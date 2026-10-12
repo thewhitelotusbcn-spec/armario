@@ -1,0 +1,13 @@
+{
+  "modelo": "isnet-general-use",
+  "bytes": 178648008,
+  "sha256": "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a",
+  "partes": [
+    "modelo-1.bin",
+    "modelo-2.bin",
+    "modelo-3.bin",
+    "modelo-4.bin"
+  ],
+  "motor": "ort-wasm-simd-threaded.wasm",
+  "bytes_motor": 11246032
+}
