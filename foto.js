@@ -1,7 +1,9 @@
 // Cambiar la foto de una prenda: la imagen elegida se prepara, se le quita el fondo
-// y se guarda como foto de tienda. En el ordenador lo hace el taller.
+// y se guarda como foto de tienda. En el ordenador el fondo lo quita el taller; en el
+// móvil, el propio aparato (recortador.js).
 
-import { armario } from "./base.js";
+import { armario, guardarFotoEnElAparato } from "./base.js";
+import { descargarRecortador, hayRecortador, megasPorDescargar, recortarAqui, soltarRecortador } from "./recortador.js";
 
 const LADO_MAXIMO = 2400; // las fotos de cámara se reducen antes de trabajar con ellas
 // Ajustes de la ficha que eran de la foto anterior y no valen para la nueva.
@@ -10,12 +12,14 @@ const AJUSTES_DE_FOTO = ["giro", "recorte", "macizo", "muestra", "modelo"];
 const NO_SE_LEE = "No se ha podido leer esa imagen.";
 const SIN_TALLER =
   "No se ha podido quitar el fondo. Cierra la ventana negra del armario, vuelve a abrirlo con «Abrir armario» y repite el cambio.";
+const SIN_RECORTADOR = "No se ha podido quitar el fondo en este aparato. Cierra la app, vuelve a abrirla y prueba otra vez.";
+const SIN_DESCARGA = "No se ha podido descargar. Comprueba la conexión y vuelve a intentarlo: sigue por donde iba.";
 
 // Un fallo al cambiar la foto cuyo texto se puede enseñar tal cual.
 export class FalloDeFoto extends Error {}
 
 // ¿Se puede cambiar la foto desde aquí?
-export const sePuedeCambiarFoto = () => armario.taller;
+export const sePuedeCambiarFoto = () => armario.taller || hayRecortador();
 
 // Deja la imagen elegida derecha, a un tamaño manejable y sin los datos que añade
 // la cámara (como el lugar donde se hizo).
@@ -41,6 +45,40 @@ export async function prepararImagen(archivo) {
   return imagen;
 }
 
+// ---------- Antes de elegir la foto ----------
+
+// El taller tarda unos segundos en arrancar su programa de quitar fondos: se le avisa
+// en cuanto se va a elegir una foto.
+export function avisarAlTaller() {
+  if (armario.taller) fetch("../api/recortador", { cache: "no-store" }).catch(() => {});
+}
+
+// En el móvil, lo que hay que descargar una vez para poder quitar fondos, en megas.
+// En el ordenador no hace falta nada.
+export async function megasQueFaltan() {
+  if (armario.taller) return 0;
+  try {
+    return await megasPorDescargar();
+  } catch {
+    throw new FalloDeFoto(SIN_DESCARGA);
+  }
+}
+
+// Descarga al móvil lo que falta. "alAvanzar" recibe la parte hecha, de 0 a 1.
+export async function descargarLoQueFalta(alAvanzar) {
+  try {
+    await descargarRecortador(alAvanzar);
+  } catch {
+    soltarRecortador();
+    throw new FalloDeFoto(SIN_DESCARGA);
+  }
+}
+
+// Al cerrar la hoja de edición se libera la memoria que ocupa el recortador del móvil.
+export const terminar = soltarRecortador;
+
+// ---------- Quitar el fondo y guardar ----------
+
 // Envía una imagen al taller y devuelve su respuesta.
 async function pedirAlTaller(ruta, imagen, modelo) {
   let respuesta;
@@ -60,23 +98,50 @@ async function pedirAlTaller(ruta, imagen, modelo) {
   return respuesta;
 }
 
-// El taller tarda unos segundos en arrancar su programa de quitar fondos:
-// se le avisa en cuanto se va a elegir una foto.
-export function avisarAlTaller() {
-  if (armario.taller) fetch("../api/recortador", { cache: "no-store" }).catch(() => {});
-}
-
 // Cómo quedaría una imagen como foto de tienda, sin guardar nada todavía.
 // "modelo" dice si la prenda la lleva puesta una persona.
+// Devuelve { foto, dudoso } y, en el móvil, también el color de la prenda.
 export async function recortar(imagen, modelo) {
-  const respuesta = await pedirAlTaller("../api/recortar", imagen, modelo);
-  return { foto: await respuesta.blob(), dudoso: respuesta.headers.get("X-Dudoso") === "1" };
+  if (armario.taller) {
+    const respuesta = await pedirAlTaller("../api/recortar", imagen, modelo);
+    return { foto: await respuesta.blob(), dudoso: respuesta.headers.get("X-Dudoso") === "1" };
+  }
+  try {
+    return await recortarAqui(imagen, modelo);
+  } catch (fallo) {
+    soltarRecortador();
+    throw new FalloDeFoto(fallo.texto ?? SIN_RECORTADOR);
+  }
 }
 
-// Cambia de verdad la foto de una prenda por la imagen dada.
-export async function cambiarFoto(prenda, imagen, modelo) {
-  const respuesta = await pedirAlTaller(`../api/prendas/${prenda.id}/foto`, imagen, modelo);
-  const ficha = await respuesta.json();
-  for (const ajuste of AJUSTES_DE_FOTO) delete prenda[ajuste];
-  Object.assign(prenda, ficha);
+// Cambia de verdad la foto de una prenda. "recorte" es lo que devolvió recortar()
+// para esa misma imagen.
+export async function cambiarFoto(prenda, imagen, modelo, recorte) {
+  if (armario.taller) {
+    const respuesta = await pedirAlTaller(`../api/prendas/${prenda.id}/foto`, imagen, modelo);
+    const ficha = await respuesta.json();
+    for (const ajuste of AJUSTES_DE_FOTO) delete prenda[ajuste];
+    Object.assign(prenda, ficha);
+    return;
+  }
+
+  const nueva = { ...prenda };
+  for (const ajuste of AJUSTES_DE_FOTO) delete nueva[ajuste];
+  if (modelo) nueva.modelo = true;
+  // La anterior se apunta entre las otras fotos; la nueva lleva la fecha y la hora en el nombre.
+  const ahora = new Date();
+  const dos = (numero) => String(numero).padStart(2, "0");
+  const fecha =
+    `${ahora.getFullYear()}${dos(ahora.getMonth() + 1)}${dos(ahora.getDate())}` +
+    `-${dos(ahora.getHours())}${dos(ahora.getMinutes())}${dos(ahora.getSeconds())}`;
+  nueva.otras_fotos = [prenda.foto_original, ...(prenda.otras_fotos ?? []).filter((f) => f !== prenda.foto_original)];
+  nueva.foto_original = `fotos/movil/${prenda.id}-${fecha}.jpg`;
+  if (recorte.color) nueva.color_foto = recorte.color;
+  else delete nueva.color_foto;
+  nueva.foto_version = Math.round(Date.now() / 1000);
+  try {
+    await guardarFotoEnElAparato(prenda, nueva, recorte.foto, imagen);
+  } catch {
+    throw new FalloDeFoto("No se ha podido guardar la foto en este aparato. Puede que no quede espacio.");
+  }
 }

@@ -85,6 +85,8 @@ export const ICONOS = {
     '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
   atras:
     '<svg viewBox="0 0 10 16" width="10" height="16" aria-hidden="true"><path d="M8 2 2 8l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  armario:
+    '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.3" y="1.3" width="5.4" height="5.4" rx="1.7"/><rect x="9.3" y="1.3" width="5.4" height="5.4" rx="1.7"/><rect x="1.3" y="9.3" width="5.4" height="5.4" rx="1.7"/><rect x="9.3" y="9.3" width="5.4" height="5.4" rx="1.7"/></g></svg>',
   movil:
     '<svg viewBox="0 0 12 18" width="11" height="17" aria-hidden="true"><rect x="1" y="1" width="10" height="16" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.6 14.2h2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
 };
@@ -245,6 +247,16 @@ export async function cargarPrendas() {
   for (const direccion of fotosDelAparato.values()) URL.revokeObjectURL(direccion);
   fotosDelAparato.clear();
   ids.forEach((id, i) => fotosDelAparato.set(id, URL.createObjectURL(fotos[i])));
+}
+
+// Guarda en el aparato la foto nueva de una prenda (ya recortada) con su imagen original.
+// "nueva" es la ficha tal como queda después del cambio.
+export async function guardarFotoEnElAparato(prenda, nueva, foto, original) {
+  await almacen.guardarFoto(nueva, foto, original);
+  for (const campo of Object.keys(prenda)) delete prenda[campo];
+  Object.assign(prenda, nueva);
+  URL.revokeObjectURL(fotosDelAparato.get(prenda.id));
+  fotosDelAparato.set(prenda.id, URL.createObjectURL(foto));
 }
 
 // Guarda los cambios de una ficha (en el ordenador o en el aparato) y actualiza la que tiene la app.

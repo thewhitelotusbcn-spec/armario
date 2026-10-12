@@ -47,6 +47,19 @@
 .redondo:active,
 .capsula:active { transform: scale(0.94); }
 
+/* A la izquierda de la barra: atrás y, al lado, volver al armario de una vez. */
+.barra-grupo {
+  display: flex;
+  gap: 8px;
+}
+
+.capsula.inicio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px 0 16px;
+}
+
 /* ---------- Foto grande y resumen ---------- */
 
 .prenda {

@@ -79,6 +79,14 @@ function navegar() {
 }
 
 let porEnlace = false; // el cambio de pantalla en curso viene de pulsar un enlace de la app
+let pasos = null;      // pantallas abiertas desde el catálogo hasta la actual (null: no se sabe)
+
+// A cuántas pantallas queda el catálogo, según lo que recuerda la pantalla actual.
+function pasosDesdeElCatalogo() {
+  const dentro = history.state?.dentro;
+  if (typeof dentro === "number") return dentro;
+  return leerRuta().vista === "catalogo" ? 0 : null;
+}
 
 document.addEventListener(
   "click",
@@ -86,10 +94,15 @@ document.addEventListener(
     const enlace = evento.target.closest("a[data-prenda]");
     ultimoClic = enlace ? enlace.querySelector(".foto") : null;
 
-    // El botón de volver deshace el último paso si se llegó hasta aquí navegando por la app.
-    if (evento.target.closest("a[data-volver]") && history.state?.dentro) {
+    const dentro = history.state?.dentro;
+    if (evento.target.closest("a[data-volver]") && dentro) {
+      // El botón de atrás deshace el último paso si se llegó hasta aquí navegando por la app.
       evento.preventDefault();
       history.back();
+    } else if (evento.target.closest("a[data-inicio]") && typeof dentro === "number" && dentro > 0) {
+      // El botón del armario deshace de una vez todos los pasos dados desde el catálogo.
+      evento.preventDefault();
+      history.go(-dentro);
     } else if (evento.target.closest('a[href^="#/"]')) {
       porEnlace = true;
     }
@@ -98,9 +111,15 @@ document.addEventListener(
 );
 
 addEventListener("hashchange", () => {
-  // Las páginas a las que se llega por un enlace de la app quedan marcadas, para que "volver" sepa deshacer.
-  if (porEnlace) history.replaceState({ dentro: true }, "");
+  if (porEnlace) {
+    // Las pantallas a las que se llega por un enlace de la app recuerdan a cuántos pasos
+    // queda el catálogo: así "atrás" sabe deshacer uno y "armario", todos de una vez.
+    const destino = leerRuta();
+    const dentro = destino.vista === "catalogo" ? 0 : ruta.vista === "catalogo" ? 1 : pasos === null ? null : pasos + 1;
+    history.replaceState(dentro === null ? null : { dentro }, "");
+  }
   porEnlace = false;
+  pasos = pasosDesdeElCatalogo();
   navegar();
 });
 
@@ -126,6 +145,7 @@ async function iniciar() {
     iniciarAparato();
   }
   ruta = leerRuta();
+  pasos = pasosDesdeElCatalogo();
   mostrar(ruta);
 }
 

@@ -28,7 +28,17 @@ import {
 } from "./base.js";
 import { repintarCatalogo } from "./catalogo.js";
 import { combinaCon, looksCon } from "./combinar.js";
-import { FalloDeFoto, avisarAlTaller, cambiarFoto, prepararImagen, recortar, sePuedeCambiarFoto } from "./foto.js";
+import {
+  FalloDeFoto,
+  avisarAlTaller,
+  cambiarFoto,
+  descargarLoQueFalta,
+  megasQueFaltan,
+  prepararImagen,
+  recortar,
+  sePuedeCambiarFoto,
+  terminar,
+} from "./foto.js";
 
 const vista = $("vista-prenda");
 const hoja = $("hoja");
@@ -50,11 +60,21 @@ const CAPA = { abajo: 1, encima: 2, punto: 3, arriba: 4, pies: 5 };
 // ---------- Cabecera de la página ----------
 
 function crearBarra(prenda) {
+  // Atrás deshace un paso; Armario vuelve al catálogo de una vez, por muchas prendas que se hayan visto.
   const volver = crear("a", "cristal redondo");
   volver.href = "#/";
   volver.dataset.volver = "";
-  volver.setAttribute("aria-label", "Volver al armario");
+  volver.setAttribute("aria-label", "Atrás");
   volver.innerHTML = ICONOS.atras;
+
+  const inicio = crear("a", "cristal capsula inicio");
+  inicio.href = "#/";
+  inicio.dataset.inicio = "";
+  inicio.innerHTML = ICONOS.armario;
+  inicio.append(crear("span", null, "Armario"));
+
+  const navegacion = crear("div", "barra-grupo");
+  navegacion.append(volver, inicio);
 
   const editar = crear("button", "cristal capsula", "Editar");
   editar.type = "button";
@@ -62,7 +82,7 @@ function crearBarra(prenda) {
 
   const barra = crear("div", "barra-prenda");
   barra.id = "barra-prenda";
-  barra.append(volver, editar);
+  barra.append(navegacion, editar);
   return barra;
 }
 
@@ -346,8 +366,10 @@ function crearGrupoDeCampos(...campos) {
 // recortada antes de guardar. "alCambiar" avisa cada vez que empieza o acaba un recorte.
 function crearCambioDeFoto(prenda, alCambiar) {
   let imagen = null;    // la imagen elegida, ya preparada
+  let recorte = null;   // cómo queda esa imagen como foto de tienda
   let ocupado = false;  // se está quitando el fondo
   let direccion = null; // dirección interna de lo que enseña la miniatura
+  let megas = null;     // en el móvil, lo que falta por descargar para quitar fondos (null: sin mirar)
 
   const miniatura = crear("span", "foto foto-mini");
   miniatura.append(crearFoto(prenda, false));
@@ -358,16 +380,51 @@ function crearCambioDeFoto(prenda, alCambiar) {
   entrada.type = "file";
   entrada.accept = "image/*";
   entrada.hidden = true;
-  const boton = crear("label", "boton secundario compacto", "Cambiar foto");
+  const rotulo = crear("span", null, "Cambiar foto");
+  const boton = crear("label", "boton secundario compacto");
   boton.tabIndex = 0;
   boton.setAttribute("role", "button");
-  boton.append(entrada);
+  boton.append(rotulo, entrada);
   boton.addEventListener("keydown", (evento) => {
     if (evento.key !== "Enter" && evento.key !== " ") return;
     evento.preventDefault();
-    entrada.click();
+    boton.click();
   });
-  boton.addEventListener("click", avisarAlTaller);
+
+  // En el móvil, la primera vez hay que descargar la pieza que quita fondos: antes de
+  // abrir el selector de imágenes se dice cuánto pesa y se espera a que se pulse «Descargar».
+  // Si falta algo se mira ya, al abrir la hoja, para que el botón responda al primer toque.
+  let avisado = false; // ya se ha dicho cuánto pesa la descarga
+  megasQueFaltan().then(
+    (faltan) => (megas = faltan),
+    () => {},
+  );
+  boton.addEventListener("click", async (evento) => {
+    avisarAlTaller();
+    if (megas === 0) return; // todo listo: se abre el selector
+    evento.preventDefault();
+    if (entrada.disabled) return;
+    try {
+      megas ??= await megasQueFaltan();
+      if (megas === 0) return entrada.click();
+      if (!avisado) {
+        avisado = true;
+        rotulo.textContent = "Descargar";
+        aviso.textContent = `Para quitar fondos en este aparato hay que descargar una pieza de ${megas} MB. Solo esta vez; mejor con wifi.`;
+        return;
+      }
+      apagar(true);
+      await descargarLoQueFalta((parte) => {
+        aviso.textContent = `Descargando… ${Math.floor(parte * 100)} %`;
+      });
+      megas = 0;
+      rotulo.textContent = "Cambiar foto";
+      aviso.textContent = "Descargado. Ya puedes elegir la foto.";
+    } catch (fallo) {
+      aviso.textContent = fallo instanceof FalloDeFoto ? fallo.message : "No se ha podido preparar.";
+    }
+    apagar(false);
+  });
 
   const conModelo = crear("input", "interruptor");
   conModelo.type = "checkbox";
@@ -389,11 +446,16 @@ function crearCambioDeFoto(prenda, alCambiar) {
     miniatura.replaceChildren(foto);
   }
 
-  function ocupar(si) {
-    ocupado = si;
+  // Mientras se descarga o se recorta no se puede elegir otra foto.
+  function apagar(si) {
     entrada.disabled = conModelo.disabled = si;
     boton.classList.toggle("apagado", si);
     miniatura.classList.toggle("trabajando", si);
+  }
+
+  function ocupar(si) {
+    ocupado = si;
+    apagar(si);
     alCambiar();
   }
 
@@ -401,14 +463,14 @@ function crearCambioDeFoto(prenda, alCambiar) {
     ocupar(true);
     aviso.textContent = "Quitando el fondo…";
     try {
-      const { foto, dudoso } = await recortar(imagen, conModelo.checked);
-      mostrar(foto);
+      recorte = await recortar(imagen, conModelo.checked);
+      mostrar(recorte.foto);
       filaModelo.hidden = false;
-      aviso.textContent = dudoso
+      aviso.textContent = recorte.dudoso
         ? "El recorte ha quedado dudoso. Sale mejor con una foto de fondo liso."
         : "Se cambiará al pulsar Guardar.";
     } catch (fallo) {
-      imagen = null;
+      imagen = recorte = null;
       mostrar(null);
       filaModelo.hidden = true;
       aviso.textContent = fallo instanceof FalloDeFoto ? fallo.message : "No se ha podido quitar el fondo.";
@@ -445,10 +507,13 @@ function crearCambioDeFoto(prenda, alCambiar) {
     // Guarda la foto nueva, si se ha elegido alguna.
     async guardar() {
       if (!imagen) return;
-      await cambiarFoto(prenda, imagen, conModelo.checked);
+      await cambiarFoto(prenda, imagen, conModelo.checked, recorte);
       imagen = null; // ya está guardada: si luego falla otra cosa, no se repite
     },
-    soltar: () => direccion && URL.revokeObjectURL(direccion),
+    soltar() {
+      if (direccion) URL.revokeObjectURL(direccion);
+      terminar();
+    },
   };
 }
 

@@ -119,13 +119,17 @@ export async function importarCopia(archivo) {
   const datos = JSON.parse(new TextDecoder().decode(fichas));
 
   const fotos = new Map();
+  const originales = new Map(); // solo vienen en las copias hechas desde un móvil
   for (const prenda of datos.prendas) {
     const bytes = archivos.get(prenda.foto_tienda);
     if (bytes) fotos.set(prenda.id, new Blob([bytes], { type: "image/webp" }));
+    const original = archivos.get(prenda.foto_original);
+    if (original) originales.set(prenda.id, new Blob([original], { type: "image/jpeg" }));
   }
   await reemplazarTodo({
     prendas: datos.prendas,
     fotos,
+    originales,
     ajustes: { mis_tallas: datos.mis_tallas ?? {}, copia: datos.copia ?? null },
   });
   return datos.prendas.length;
@@ -133,10 +137,12 @@ export async function importarCopia(archivo) {
 
 // Empaqueta el armario de este aparato en un .zip para guardarlo o llevarlo al ordenador.
 export async function exportarCopia() {
-  const [prendas, ids, fotos, ajustes] = await Promise.all([
+  const [prendas, ids, fotos, idsOriginales, originales, ajustes] = await Promise.all([
     leerTodo("prendas"),
     leerClaves("fotos"),
     leerTodo("fotos"),
+    leerClaves("originales"),
+    leerTodo("originales"),
     leerTodo("ajustes").then(async (valores) => {
       const nombres = await leerClaves("ajustes");
       return Object.fromEntries(nombres.map((nombre, i) => [nombre, valores[i]]));
@@ -152,6 +158,11 @@ export async function exportarCopia() {
   for (const [i, id] of ids.entries()) {
     const prenda = prendas.find((p) => p.id === id);
     if (prenda) archivos.set(prenda.foto_tienda, new Uint8Array(await fotos[i].arrayBuffer()));
+  }
+  // Las imágenes originales de las fotos cambiadas en el aparato, para poder rehacerlas en el ordenador.
+  for (const [i, id] of idsOriginales.entries()) {
+    const prenda = prendas.find((p) => p.id === id);
+    if (prenda) archivos.set(prenda.foto_original, new Uint8Array(await originales[i].arrayBuffer()));
   }
   return hacerZip(archivos);
 }
