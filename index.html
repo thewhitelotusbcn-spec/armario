@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff">
+  <title>Armario</title>
+  <!-- Con esto el móvil puede instalar la app y ponerle su icono. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="iconos/icono-192.png">
+  <link rel="apple-touch-icon" href="iconos/icono-192.png">
+  <link rel="stylesheet" href="estilos.css">
+  <link rel="stylesheet" href="prenda.css">
+</head>
+<body>
+  <!-- Al bajar por la página, el contenido se desvanece bajo la barra flotante. -->
+  <div class="borde" aria-hidden="true"></div>
+
+  <!-- Pantalla del catálogo -->
+  <div id="vista-catalogo">
+    <header class="cabecera">
+      <div>
+        <h1 class="titulo">Armario</h1>
+        <p class="recuento" id="recuento" aria-live="polite"></p>
+      </div>
+      <!-- En el ordenador: cómo abrir la app en el móvil. En el móvil: copias del armario. -->
+      <button class="cristal capsula movil" id="movil" type="button" hidden></button>
+      <button class="cristal capsula movil" id="copia" type="button" hidden>Copias</button>
+    </header>
+    <div id="centinela"></div>
+
+    <div class="barra" id="barra">
+      <nav class="cristal categorias" aria-label="Categorías">
+        <div class="pista" id="pista">
+          <span class="pulgar" id="pulgar"></span>
+        </div>
+      </nav>
+
+      <div class="acciones">
+        <div class="cristal filtros" id="filtros" role="group" aria-label="Filtros"></div>
+        <button class="cristal quitar" id="quitar" type="button" aria-label="Quitar filtros" hidden></button>
+      </div>
+
+      <div class="cristal menu" id="menu" role="menu"></div>
+    </div>
+
+    <main id="contenido"></main>
+
+    <section class="vacio" id="vacio" hidden>
+      <h2>Sin resultados</h2>
+      <p>Ninguna prenda coincide con estos filtros.</p>
+      <button class="boton" id="vacio-quitar" type="button">Quitar filtros</button>
+    </section>
+
+    <!-- Primera vez en un aparato: todavía no tiene el armario dentro. -->
+    <section class="vacio bienvenida" id="bienvenida" hidden>
+      <svg class="bienvenida-icono" viewBox="0 0 100 100" aria-hidden="true"><path d="M40.8 28.5A9.5 9.5 0 1 1 50 35.5V45L15 68h70L50 45" fill="none" stroke="currentColor" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h2>Tu armario aún no está en este aparato</h2>
+      <p>Trae la copia que se prepara en el ordenador. Está en la carpeta Descargas y se llama «armario-copia».</p>
+      <p class="copia-estado" id="estado-copia" role="status"></p>
+    </section>
+  </div>
+
+  <!-- Pantalla de una prenda: la rellena prenda.js -->
+  <main id="vista-prenda" hidden></main>
+
+  <!-- Hojas (editar ficha, abrir en el móvil, copias) y mensajes breves -->
+  <dialog class="hoja" id="hoja" aria-labelledby="hoja-titulo"></dialog>
+  <dialog class="hoja hoja-movil" id="hoja-movil" aria-labelledby="movil-titulo"></dialog>
+  <dialog class="hoja hoja-movil" id="hoja-copia" aria-labelledby="copia-titulo"></dialog>
+  <div class="cristal tostada" id="tostada" role="status"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

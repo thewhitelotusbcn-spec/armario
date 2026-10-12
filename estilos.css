@@ -1,0 +1,828 @@
+/* Aspecto del catálogo. Los colores y medidas principales están aquí arriba. */
+:root {
+  color-scheme: light;
+
+  --fondo: #ffffff;
+  --superficie: #f5f5f7;        /* fondo de cada tarjeta */
+  --etiqueta: #1d1d1f;          /* texto principal */
+  --etiqueta-2: #6e6e73;        /* texto secundario */
+  --acento: #0071e3;
+  --aviso: #a35200;             /* naranja de "no es tu talla" */
+  --relleno: rgba(0, 0, 0, 0.05);
+  --relleno-fuerte: rgba(0, 0, 0, 0.09);
+
+  --lado: 16px;                 /* margen a izquierda y derecha */
+  --ancho: 1640px;              /* ancho máximo del contenido */
+  --hueco: 12px;                /* separación entre tarjetas */
+  --radio-tarjeta: 22px;
+  --radio-menu: 24px;
+  --alto-control: 40px;
+
+  --muelle: cubic-bezier(0.32, 0.72, 0, 1);
+  --texto: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI",
+    system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --titular: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI",
+    system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Letra de máquina de escribir, la más parecida a la de Zara Origins que hay en cada sistema. */
+  --mono: "Letter Gothic Std", "Lucida Sans Typewriter", "Cascadia Mono", Consolas, ui-monospace, "SF Mono",
+    Menlo, monospace;
+}
+
+@media (min-width: 700px) {
+  :root { --lado: 32px; --hueco: 16px; --radio-tarjeta: 26px; }
+}
+
+@media (min-width: 1100px) {
+  :root { --lado: 48px; --hueco: 20px; --radio-tarjeta: 28px; }
+}
+
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 84px;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--etiqueta);
+  font: 400 15px/1.4 var(--texto);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--acento) 55%, transparent);
+  outline-offset: 2px;
+}
+
+[hidden] { display: none !important; }
+
+/* ---------- Cristal: el material de los controles flotantes ---------- */
+
+.cristal {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76) 0%, rgba(250, 250, 252, 0.58) 100%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),            /* canto */
+    inset 0 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.98), /* brillo superior */
+    inset 0 -1px 1px rgba(0, 0, 0, 0.035),                /* sombra interior inferior */
+    0 0 0 0.5px rgba(0, 0, 0, 0.07),
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 14px 34px -14px rgba(0, 0, 0, 0.22);
+}
+
+/* Un reflejo suave sigue al puntero sobre el cristal. */
+.categorias::after,
+.filtros::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    150px circle at var(--luz-x, 50%) var(--luz-y, 0%),
+    rgba(255, 255, 255, 0.6),
+    transparent 68%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s;
+}
+
+@media (hover: hover) {
+  .categorias:hover::after,
+  .filtros:hover::after { opacity: 1; }
+}
+
+/* ---------- Cabecera ---------- */
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: var(--ancho);
+  margin: 0 auto;
+  padding: 28px var(--lado) 0;
+}
+
+/* Botón que enseña cómo abrir la app en el móvil (solo sale en el ordenador). */
+.cabecera .movil {
+  display: inline-flex;
+  flex: none;
+  gap: 8px;
+  height: 40px;
+  margin-top: 4px;
+  padding: 0 16px 0 14px;
+}
+
+.titulo {
+  margin: 0;
+  font: 700 34px/1.08 var(--titular);
+  letter-spacing: -0.024em;
+}
+
+.recuento {
+  margin: 6px 0 0;
+  color: var(--etiqueta-2);
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 700px) {
+  .cabecera { padding-top: 48px; }
+  .titulo { font-size: 44px; }
+}
+
+@media (min-width: 1100px) {
+  .cabecera { padding-top: 64px; }
+  .titulo { font-size: 48px; }
+}
+
+/* ---------- Barra flotante ---------- */
+
+.barra {
+  position: sticky;
+  top: max(12px, env(safe-area-inset-top));
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  max-width: var(--ancho);
+  margin: 20px auto 0;
+  padding-inline: var(--lado);
+  view-transition-name: barra;
+}
+
+.categorias {
+  flex: 0 1 auto;
+  min-width: 0;
+  border-radius: 999px;
+}
+
+/* Si las categorías no caben, se deslizan de lado y se desvanecen en el borde
+   por el que continúan (--izq y --der los pone app.js). */
+.pista {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-radius: 999px;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--izq, 0px),
+    #000 calc(100% - var(--der, 0px)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--izq, 0px),
+    #000 calc(100% - var(--der, 0px)),
+    transparent 100%
+  );
+}
+
+.pista::-webkit-scrollbar { display: none; }
+
+.pildora {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  height: var(--alto-control);
+  padding: 0 16px;
+  border-radius: 999px;
+  color: var(--etiqueta-2);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: color 0.3s, transform 0.2s var(--muelle);
+}
+
+.pildora:hover,
+.pildora[aria-pressed="true"] { color: var(--etiqueta); }
+
+.pildora:active { transform: scale(0.96); }
+
+/* La pastilla blanca que se desliza hasta la categoría elegida. */
+.pulgar {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: var(--w, 0);
+  height: var(--alto-control);
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.07),
+    0 6px 16px -6px rgba(0, 0, 0, 0.18);
+  transform: translateX(var(--x, 0));
+  transition: transform 0.45s var(--muelle), width 0.45s var(--muelle);
+}
+
+.pulgar.sin-animar { transition: none; }
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* En pantallas estrechas los filtros se deslizan de lado dentro de su cápsula. */
+.filtros {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 999px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filtros::-webkit-scrollbar { display: none; }
+
+.filtro { flex: none; }
+
+.filtro {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: var(--alto-control);
+  padding: 0 13px 0 16px;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: background-color 0.25s, color 0.25s, transform 0.2s var(--muelle);
+}
+
+.filtro svg {
+  opacity: 0.55;
+  transition: transform 0.35s var(--muelle);
+}
+
+.filtro:hover { background: var(--relleno); }
+.filtro[aria-expanded="true"] { background: var(--relleno-fuerte); }
+.filtro[aria-expanded="true"] svg { transform: rotate(180deg); }
+.filtro:active { transform: scale(0.96); }
+
+.filtro.activo {
+  background: var(--etiqueta);
+  color: #ffffff;
+}
+
+.filtro.activo svg { opacity: 0.8; }
+
+.quitar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: var(--etiqueta-2);
+  transition: color 0.25s, transform 0.2s var(--muelle);
+  animation: brotar 0.4s var(--muelle);
+}
+
+.quitar:hover { color: var(--etiqueta); }
+.quitar:active { transform: scale(0.92); }
+
+@keyframes brotar {
+  from { opacity: 0; transform: scale(0.6); }
+}
+
+/* ---------- Menú de un filtro ---------- */
+
+.menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: var(--lado);
+  width: 288px;
+  padding: 6px;
+  border-radius: var(--radio-menu);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, rgba(250, 250, 252, 0.74) 100%);
+  transform-origin: calc(100% - 48px) top;
+  display: none;
+  opacity: 0;
+  transform: scale(0.92) translateY(-8px);
+  transition:
+    opacity 0.2s,
+    transform 0.32s var(--muelle),
+    display 0.32s allow-discrete;
+}
+
+.menu.abierto {
+  display: block;
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .menu.abierto {
+    opacity: 0;
+    transform: scale(0.92) translateY(-8px);
+  }
+}
+
+@media (max-width: 699px) {
+  .menu {
+    left: var(--lado);
+    right: var(--lado) !important;
+    width: auto;
+    transform-origin: 50% top;
+  }
+}
+
+.opcion {
+  display: grid;
+  grid-template-columns: auto 1fr auto 16px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 12px;
+  /* Radio concéntrico con el del menú: 24 - 6 de margen interior. */
+  border-radius: calc(var(--radio-menu) - 6px);
+  text-align: left;
+  transition: background-color 0.15s, opacity 0.25s;
+}
+
+.opcion:hover { background: var(--relleno); }
+.opcion:active { background: var(--relleno-fuerte); }
+
+.opcion:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background: none;
+}
+
+.opcion .muestra {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.22);
+}
+
+.opcion .rotulo {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.opcion .nombre-op {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.opcion .nota {
+  color: var(--etiqueta-2);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.ahora {
+  padding: 1px 7px 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--acento) 12%, transparent);
+  color: var(--acento);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.opcion .cuenta {
+  grid-column: 3;
+  color: var(--etiqueta-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.opcion .visto {
+  grid-column: 4;
+  display: grid;
+  color: var(--acento);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.2s, transform 0.35s var(--muelle);
+}
+
+.opcion[aria-checked="true"] .visto {
+  opacity: 1;
+  transform: none;
+}
+
+.menu-pie {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.12);
+}
+
+.menu-pie .opcion {
+  display: block;
+  color: var(--acento);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ---------- Desvanecido del contenido bajo la barra ---------- */
+
+/* --alto-barra lo mide app.js: es donde acaba la barra flotante. El contenido
+   se emborrona y se aclara hasta ahí, y se desvanece en los 36 px siguientes. */
+.borde {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 15;
+  height: calc(var(--alto-barra, 60px) + 36px);
+  background: linear-gradient(
+    to bottom,
+    var(--fondo) 0,
+    rgba(255, 255, 255, 0.86) calc(var(--alto-barra, 60px) * 0.5),
+    rgba(255, 255, 255, 0.62) var(--alto-barra, 60px),
+    rgba(255, 255, 255, 0) 100%
+  );
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 var(--alto-barra, 60px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 var(--alto-barra, 60px), transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s;
+  view-transition-name: borde;
+}
+
+.desplazado .borde { opacity: 1; }
+
+/* ---------- Secciones y tarjetas ---------- */
+
+#contenido {
+  max-width: var(--ancho);
+  margin: 0 auto;
+  padding: 32px var(--lado) 120px;
+}
+
+.seccion + .seccion { margin-top: 44px; }
+
+.seccion-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: fit-content;
+  margin: 0 0 14px;
+  font: 600 22px/1.2 var(--titular);
+  letter-spacing: -0.018em;
+}
+
+.seccion-titulo .cuenta {
+  color: var(--etiqueta-2);
+  font: 400 15px/1 var(--texto);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cuadricula {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hueco);
+}
+
+@media (min-width: 700px) {
+  .cuadricula { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1000px) {
+  .cuadricula { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1280px) {
+  .cuadricula { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1640px) {
+  .cuadricula { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+.tarjeta {
+  view-transition-class: prenda;
+  animation: entrar 0.7s var(--muelle) both;
+  animation-delay: calc(min(var(--i), 14) * 35ms);
+}
+
+@keyframes entrar {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+}
+
+.ficha {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.5s var(--muelle), box-shadow 0.5s var(--muelle);
+}
+
+.ficha:active { transform: scale(0.98); }
+
+/* La foto de una prenda, en cualquier tamaño: siempre en proporción 4:5. */
+.foto {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+}
+
+/* Etiquetas de cristal sobre la foto: "Origins" y "Foto pendiente". */
+.sello {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--etiqueta);
+  font: 500 11px/1 var(--texto);
+  white-space: nowrap;
+}
+
+.sello + .sello { bottom: 40px; }
+
+.sello.origins {
+  padding: 0 8px 0 11px; /* el espaciado entre letras deja aire de más a la derecha */
+  font: 400 10.5px/1 var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* En la tarjeta lleva sus propias esquinas, para que al abrir la prenda crezca redondeada. */
+.ficha .foto { border-radius: var(--radio-tarjeta) var(--radio-tarjeta) 0 0; }
+
+.foto img,
+.heroe img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: transform 0.9s var(--muelle), opacity 0.5s;
+}
+
+.foto img.lista,
+.heroe img.lista { opacity: 1; }
+
+@media (hover: hover) {
+  .ficha:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 22px 44px -22px rgba(0, 0, 0, 0.28);
+  }
+  .ficha:hover .foto img { transform: scale(1.035); }
+}
+
+.pie {
+  padding: 2px 18px 18px;
+}
+
+.nombre {
+  margin: 0;
+  font: 600 15px/1.3 var(--texto);
+  letter-spacing: -0.012em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: var(--etiqueta-2);
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* El punto lleva el color real de la prenda, sacado de su foto. */
+.meta .punto {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.25);
+}
+
+.meta .punto + span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* La talla, a la derecha. En naranja si no es la que uso ahora. */
+.meta .talla {
+  flex: none;
+  margin-left: auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--etiqueta);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.meta .talla.arreglar {
+  background: rgba(255, 149, 0, 0.2);
+  color: var(--aviso);
+}
+
+@media (max-width: 699px) {
+  .pie { padding: 0 14px 14px; }
+  .nombre { font-size: 14px; }
+  .meta { font-size: 12px; }
+}
+
+/* ---------- Sin resultados ---------- */
+
+.vacio {
+  max-width: 420px;
+  margin: 8vh auto 0;
+  padding: 0 var(--lado) 120px;
+  text-align: center;
+}
+
+.vacio h2 {
+  margin: 0;
+  font: 600 22px/1.2 var(--titular);
+  letter-spacing: -0.018em;
+}
+
+.vacio p {
+  margin: 6px 0 20px;
+  color: var(--etiqueta-2);
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: var(--etiqueta);
+  color: #ffffff;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 0.2s var(--muelle), opacity 0.2s;
+}
+
+.boton:hover { opacity: 0.86; }
+.boton:active { transform: scale(0.96); }
+
+.boton.secundario {
+  background: var(--relleno-fuerte);
+  color: var(--etiqueta);
+}
+
+/* ---------- Primera vez en un aparato ---------- */
+
+/* Sin armario no hay nada que filtrar: se esconde la barra y se invita a traer la copia. */
+.sin-armario .barra { display: none; }
+
+.bienvenida h2 { text-wrap: balance; }
+
+/* La percha del icono de la app, sobre su misma ficha gris. */
+.bienvenida-icono {
+  display: block;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 22px;
+  padding: 12px;
+  border-radius: 22px;
+  background: var(--superficie);
+  color: var(--etiqueta);
+}
+
+/* Cómo va el traer la copia. Mientras no hay nada que decir no ocupa sitio. */
+.vacio .copia-estado,
+.movil-aviso .copia-estado {
+  margin: 14px 0 0;
+  font-size: 14px;
+}
+
+.vacio .copia-estado:empty,
+.movil-aviso .copia-estado:empty { margin: 0; }
+
+/* ---------- Mensaje breve ---------- */
+
+.tostada {
+  position: fixed;
+  left: 50%;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  z-index: 60;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 16px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.45s var(--muelle);
+}
+
+.tostada.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- Movimiento al filtrar y al cambiar de pantalla ---------- */
+
+/* Las tarjetas se deslizan a su nuevo sitio; las que entran o salen lo hacen con un fundido. */
+::view-transition { pointer-events: none; }
+
+::view-transition-group(*) {
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 0.25s; }
+
+/* Al abrir una prenda, su foto crece desde la tarjeta hasta la foto grande, y vuelve. */
+::view-transition-group(heroe) {
+  animation-duration: 0.6s;
+  z-index: 1;
+}
+
+/* Mientras se filtra, la barra y el desvanecido no se funden: se ven en directo. */
+::view-transition-old(barra):not(:only-child),
+::view-transition-old(borde):not(:only-child) { display: none; }
+
+::view-transition-new(barra):not(:only-child),
+::view-transition-new(borde):not(:only-child) { animation: none; }
+
+::view-transition-new(.prenda):only-child {
+  animation: aparecer 0.45s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+::view-transition-old(.prenda):only-child {
+  animation: irse 0.22s ease-in both;
+}
+
+@keyframes aparecer {
+  from { opacity: 0; transform: scale(0.94); }
+}
+
+@keyframes irse {
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

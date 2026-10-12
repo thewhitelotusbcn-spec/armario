@@ -1,0 +1,799 @@
+/* Página de una prenda y hoja de edición. Usa las medidas y colores de estilos.css. */
+
+#vista-prenda { padding: 24px 0 120px; }
+
+/* ---------- Barra flotante: volver y editar ---------- */
+
+/* Los dos botones flotan sobre la esquina de la foto, a 12 px de su borde. */
+.barra-prenda {
+  position: sticky;
+  top: max(12px, env(safe-area-inset-top));
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-inline: calc(var(--lado) + 12px);
+  pointer-events: none;
+  view-transition-name: barra-prenda;
+}
+
+.barra-prenda > * { pointer-events: auto; }
+
+.redondo,
+.capsula {
+  display: grid;
+  place-items: center;
+  height: 48px;
+  color: var(--etiqueta);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  transition: transform 0.2s var(--muelle);
+}
+
+.redondo {
+  width: 48px;
+  border-radius: 50%;
+}
+
+.redondo svg { margin-right: 2px; } /* la flecha se ve centrada un pelo a la izquierda */
+
+.capsula {
+  padding: 0 20px;
+  border-radius: 999px;
+}
+
+.redondo:active,
+.capsula:active { transform: scale(0.94); }
+
+/* ---------- Foto grande y resumen ---------- */
+
+.prenda {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  max-width: 1280px;
+  /* Sube 60 px para que la foto empiece a la altura de la barra y los botones queden sobre ella. */
+  margin: -60px auto 0;
+  padding-inline: var(--lado);
+}
+
+.heroe {
+  position: relative;
+  width: min(100%, calc((100svh - 36px) * 0.8));
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--superficie);
+  view-transition-name: heroe;
+}
+
+@media (min-width: 900px) {
+  .barra-prenda { top: 24px; }
+
+  .prenda {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+
+  .escaparate {
+    position: sticky;
+    top: 12px;
+  }
+
+  .heroe { border-radius: 36px; }
+
+  /* El texto empieza por debajo del botón de editar. */
+  .resumen { padding-top: 84px; }
+}
+
+/* En la foto grande las etiquetas son mayores. */
+.heroe .sello {
+  left: 18px;
+  bottom: 18px;
+  height: 34px;
+  padding: 0 15px;
+  font-size: 13px;
+}
+
+.heroe .sello + .sello { bottom: 60px; }
+
+.heroe .sello.origins {
+  padding: 0 12px 0 16px;
+  font-size: 13px;
+}
+
+.antetitulo {
+  margin: 0;
+  color: var(--etiqueta-2);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.prenda-nombre {
+  margin: 6px 0 0;
+  font: 700 clamp(30px, 3.4vw, 44px) / 1.08 var(--titular);
+  letter-spacing: -0.024em;
+  text-wrap: balance;
+  outline: none;
+}
+
+/* Aviso de ficha sin revisar */
+.revision {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin: 20px 0 0;
+  padding: 10px 10px 10px 16px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--acento) 8%, transparent);
+}
+
+.revision p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.revision-acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.revision button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--acento) 12%, transparent);
+  color: var(--acento);
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.2s var(--muelle), opacity 0.2s;
+}
+
+.revision button:first-child {
+  background: var(--acento);
+  color: #ffffff;
+}
+
+.revision button:active { transform: scale(0.95); }
+.revision button:disabled { opacity: 0.5; }
+
+/* Datos de la ficha, en baldosas */
+.datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 24px 0 0;
+}
+
+@media (min-width: 560px) {
+  .datos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 96px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--superficie);
+}
+
+.dato dt {
+  color: var(--etiqueta-2);
+  font-size: 13px;
+}
+
+.dato dd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font: 600 17px/1.25 var(--texto);
+  letter-spacing: -0.016em;
+}
+
+.dato-nota {
+  color: var(--etiqueta-2);
+  font: 400 12px/1.3 var(--texto);
+  letter-spacing: 0;
+}
+
+.dato-nota.aviso {
+  color: var(--aviso);
+  font-weight: 500;
+}
+
+.dato-color {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.dato-color .punto {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.25);
+}
+
+.dato-color .punto + .punto { margin-left: -9px; }
+
+.dato-formalidad {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.medidor {
+  display: flex;
+  gap: 4px;
+}
+
+.medidor span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.medidor .lleno { background: var(--etiqueta); }
+
+/* Ideas de estilo y notas */
+.texto { margin-top: 36px; }
+
+.apartado {
+  margin: 0 0 4px;
+  font: 600 20px/1.2 var(--titular);
+  letter-spacing: -0.018em;
+}
+
+.consejos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.consejos li {
+  padding: 14px 0;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.14);
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.012em;
+  text-wrap: pretty;
+}
+
+.consejos li:last-child { border-bottom: 0; }
+
+.notas {
+  margin: 8px 0 0;
+  color: var(--etiqueta-2);
+  line-height: 1.5;
+}
+
+/* ---------- Looks y combinaciones ---------- */
+
+.bloque {
+  max-width: 1280px;
+  margin: 72px auto 0;
+  padding-inline: var(--lado);
+}
+
+.bloque-titulo {
+  margin: 0;
+  font: 700 28px/1.14 var(--titular);
+  letter-spacing: -0.022em;
+}
+
+.bloque-nota {
+  margin: 6px 0 0;
+  color: var(--etiqueta-2);
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+/* En pantallas estrechas los looks se pasan de lado; en anchas van tres en fila. */
+.tableros {
+  display: flex;
+  gap: var(--hueco);
+  margin: 24px calc(var(--lado) * -1) 0;
+  padding-inline: var(--lado);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--lado);
+  scrollbar-width: none;
+}
+
+.tableros::-webkit-scrollbar { display: none; }
+
+.tablero {
+  flex: none;
+  width: min(78vw, 340px);
+  scroll-snap-align: start;
+}
+
+@media (min-width: 900px) {
+  .tableros {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+  }
+
+  .tablero { width: auto; }
+}
+
+.lienzo {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie);
+}
+
+/* Cada prenda del look proyecta una sombra suave, como colocada sobre una mesa. */
+.pieza {
+  position: absolute;
+  display: block;
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.1));
+  transition: transform 0.5s var(--muelle);
+}
+
+@media (hover: hover) {
+  a.pieza:hover { transform: scale(1.05); }
+}
+
+.tablero-titulo {
+  margin: 14px 4px 0;
+  font: 600 17px/1.25 var(--texto);
+  letter-spacing: -0.016em;
+}
+
+.tablero-motivo {
+  margin: 2px 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.tablero-piezas {
+  margin: 6px 4px 0;
+  color: var(--etiqueta-2);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.estante-titulo {
+  margin: 28px 0 12px;
+  font: 600 17px/1.2 var(--texto);
+  letter-spacing: -0.016em;
+}
+
+.fila {
+  list-style: none;
+  display: flex;
+  gap: 12px;
+  margin: 0 calc(var(--lado) * -1);
+  padding: 0 var(--lado) 4px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--lado);
+  scrollbar-width: none;
+}
+
+.fila::-webkit-scrollbar { display: none; }
+
+.fila li {
+  flex: none;
+  width: 148px;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 900px) {
+  .fila li { width: 172px; }
+}
+
+.mini {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mini .foto {
+  border-radius: 20px;
+  background: var(--superficie);
+}
+
+@media (hover: hover) {
+  a.mini:hover .foto img { transform: scale(1.05); }
+}
+
+.mini-nombre {
+  display: block;
+  margin: 8px 2px 0;
+  font: 500 13px/1.3 var(--texto);
+}
+
+/* ---------- Hoja de edición ---------- */
+
+.hoja {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(780px, calc(100svh - 48px));
+  padding: 0;
+  border: 0;
+  border-radius: 28px;
+  background: #f2f2f7;
+  color: var(--etiqueta);
+  box-shadow: 0 40px 90px -24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(28px) scale(0.97);
+  transition:
+    opacity 0.25s,
+    transform 0.45s var(--muelle),
+    overlay 0.45s allow-discrete,
+    display 0.45s allow-discrete;
+}
+
+.hoja[open] {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .hoja[open] {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+}
+
+.hoja::backdrop {
+  background: rgba(0, 0, 0, 0);
+  transition:
+    background-color 0.35s,
+    overlay 0.45s allow-discrete,
+    display 0.45s allow-discrete;
+}
+
+.hoja[open]::backdrop { background: rgba(0, 0, 0, 0.32); }
+
+@starting-style {
+  .hoja[open]::backdrop { background: rgba(0, 0, 0, 0); }
+}
+
+/* En el móvil la hoja sube desde abajo. */
+@media (max-width: 699px) {
+  .hoja {
+    width: 100vw;
+    max-width: none;
+    max-height: calc(100svh - 28px);
+    margin: auto 0 0;
+    border-radius: 28px 28px 0 0;
+    transform: translateY(100%);
+  }
+
+  @starting-style {
+    .hoja[open] {
+      opacity: 1;
+      transform: translateY(100%);
+    }
+  }
+}
+
+.hoja form,
+.hoja-contenido {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+/* Hoja "Abrir en el móvil": tres pasos numerados con la dirección y el PIN en grande. */
+@media (min-width: 700px) {
+  .hoja-movil { width: 440px; }
+}
+
+.movil-pasos {
+  list-style: none;
+  counter-reset: paso;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.movil-pasos li {
+  counter-increment: paso;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.movil-pasos li::before {
+  content: counter(paso);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--etiqueta);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.movil-dato {
+  grid-column: 2;
+  font: 600 24px/1.2 var(--texto);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+}
+
+.movil-dato.pin {
+  font-size: 30px;
+  letter-spacing: 0.2em;
+}
+
+/* Código QR para abrir la app apuntando con la cámara del móvil. */
+.movil-qr {
+  grid-column: 2;
+  width: 176px;
+  margin: 4px 0;
+}
+
+.movil-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.movil-alternativa {
+  grid-column: 2;
+  color: var(--etiqueta-2);
+  font-size: 13px;
+  user-select: all;
+}
+
+.movil-nota {
+  flex: none;
+  margin: 0;
+  padding: 0 4px;
+  color: var(--etiqueta-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.movil-quitar {
+  flex: none;
+  align-self: center;
+  padding: 6px 10px;
+  color: var(--etiqueta-2);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Cuando la wifi no está marcada como mía: explicación y botón para marcarla. */
+.movil-aviso {
+  flex: none;
+  padding: 22px 20px 20px;
+  border-radius: 18px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.movil-aviso h3 {
+  margin: 0;
+  font: 600 20px/1.25 var(--titular);
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+
+.movil-aviso p {
+  margin: 8px 0 0;
+  color: var(--etiqueta-2);
+  font-size: 15px;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.movil-aviso .boton { margin-top: 18px; }
+
+.hoja-cabecera {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 12px 14px 10px;
+}
+
+.hoja-cabecera h2 {
+  margin: 0;
+  font: 600 17px/1.2 var(--texto);
+  letter-spacing: -0.016em;
+}
+
+.hoja-accion {
+  justify-self: start;
+  height: 36px;
+  padding: 0 6px;
+  border-radius: 10px;
+  color: var(--acento);
+  font-size: 17px;
+  letter-spacing: -0.016em;
+}
+
+.hoja-accion.principal {
+  justify-self: end;
+  font-weight: 600;
+}
+
+.hoja-accion:disabled { opacity: 0.4; }
+
+.hoja-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 6px 16px max(24px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
+}
+
+.hoja-fallo {
+  flex: none;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(255, 59, 48, 0.1);
+  color: #c4281c;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.campos {
+  flex: none;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.campo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  padding: 0 16px;
+  font-size: 16px;
+  letter-spacing: -0.012em;
+}
+
+/* Separador entre filas, con sangría a la izquierda como en iOS. */
+.campo + .campo::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 16px;
+  height: 0.5px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.campo-nombre { flex: none; }
+
+.campo input:not([type="radio"], [type="checkbox"]),
+.campo select,
+.campo textarea {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--etiqueta-2);
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: right;
+}
+
+.campo input:focus,
+.campo textarea:focus { color: var(--etiqueta); }
+
+.campo select {
+  appearance: none;
+  padding-right: 18px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M2 5l3-3 3 3M2 9l3 3 3-3' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right center / 9px;
+  cursor: pointer;
+  text-align-last: right;
+}
+
+.campo:focus-within > .campo-nombre { color: var(--acento); }
+
+.campo.apilado {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 16px 14px;
+}
+
+.campo.apilado textarea {
+  padding: 0;
+  resize: vertical;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.campo-ayuda {
+  color: var(--etiqueta-2);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+/* Botones para elegir una opción o varias */
+.segmentado {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 12px;
+  background: rgba(118, 118, 128, 0.12);
+}
+
+.segmentado label {
+  position: relative;
+  flex: 1;
+}
+
+.segmentado input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmentado span {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--etiqueta);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.segmentado input:checked + span {
+  background: #ffffff;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.14);
+}
+
+.segmentado input:focus-visible + span {
+  outline: 3px solid color-mix(in srgb, var(--acento) 55%, transparent);
+  outline-offset: 1px;
+}
+
+/* La página no se mueve por detrás mientras la hoja está abierta. */
+html:has(.hoja[open]) { overflow: hidden; }
