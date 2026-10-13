@@ -111,12 +111,20 @@ export function hacerZip(archivos) {
 
 // ---------- Copias del armario ----------
 
-// Sustituye el armario de este aparato por el de una copia. Devuelve cuántas prendas trae.
-export async function importarCopia(archivo) {
+// Lee una copia sin tocar nada: sus archivos y sus datos (fichas, tallas y cuándo se hizo).
+export async function leerCopia(archivo) {
   const archivos = await leerZip(archivo);
   const fichas = archivos.get("prendas.json");
   if (!fichas) throw new Error("El archivo no es una copia del armario.");
-  const datos = JSON.parse(new TextDecoder().decode(fichas));
+  return { archivos, datos: JSON.parse(new TextDecoder().decode(fichas)) };
+}
+
+// Cuándo se hizo una copia (o null si no lo dice), según sus datos.
+export const fechaDeCopia = (datos) => (datos?.copia?.hecha ? new Date(datos.copia.hecha) : null);
+
+// Sustituye el armario de este aparato por el de una copia. Devuelve cuántas prendas trae.
+export async function importarCopia(archivo) {
+  const { archivos, datos } = await leerCopia(archivo);
 
   const fotos = new Map();
   const originales = new Map(); // solo vienen en las copias hechas desde un móvil

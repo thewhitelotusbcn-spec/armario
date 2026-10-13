@@ -1,17 +1,36 @@
 // Lo propio de cuando la app va por su cuenta, instalada en el móvil:
 // traer y guardar copias del armario y dejarla disponible sin internet.
 
-import { pedirPermanencia } from "./almacen.js";
+import { leer, pedirPermanencia } from "./almacen.js";
 import { $, armario, avisar, crear } from "./base.js";
-import { exportarCopia, importarCopia } from "./copia.js";
+import { exportarCopia, fechaDeCopia, importarCopia, leerCopia } from "./copia.js";
 import { abrirNube, iniciarNube } from "./nube.js";
 
 const hoja = $("hoja-copia");
 
+const fechaCorta = (fecha) =>
+  fecha.toLocaleString("es", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+
 // Sustituye el armario de este aparato por el de la copia elegida y vuelve a abrir la app.
+// Si la copia es más antigua que la que ya trajo este aparato, pregunta antes: traerla
+// devolvería las prendas a como estaban entonces.
 async function traerCopia(archivo, estado) {
-  estado.textContent = "Trayendo tu armario…";
+  estado.textContent = "Mirando la copia…";
   try {
+    const { datos } = await leerCopia(archivo);
+    const hecha = fechaDeCopia(datos);
+    const anterior = fechaDeCopia({ copia: await leer("ajustes", "copia") });
+    if (hecha && anterior && hecha <= anterior && armario.prendas.length > 0) {
+      const seguir = confirm(
+        `Esta copia es del ${fechaCorta(hecha)} y el armario de este aparato viene de una más nueva, del ${fechaCorta(anterior)}. ` +
+          "Si la traes, las prendas volverán a como estaban entonces y se perderán los cambios hechos aquí. ¿Traerla igualmente?",
+      );
+      if (!seguir) {
+        estado.textContent = "No se ha traído. Busca una copia más reciente.";
+        return;
+      }
+    }
+    estado.textContent = "Trayendo tu armario…";
     const cuantas = await importarCopia(archivo);
     await pedirPermanencia();
     estado.textContent = `${cuantas} prendas. Abriendo…`;
@@ -45,7 +64,8 @@ async function guardarCopia() {
   avisar("Copia guardada en Descargas");
 }
 
-function abrirCopias() {
+async function abrirCopias() {
+  const origen = fechaDeCopia({ copia: await leer("ajustes", "copia") });
   const titulo = crear("h2", null, "Copias");
   titulo.id = "copia-titulo";
   const hecho = crear("button", "hoja-accion principal", "Hecho");
@@ -61,6 +81,7 @@ function abrirCopias() {
   guardar.type = "button";
   guardar.addEventListener("click", guardarCopia);
   const salida = crear("div", "movil-aviso");
+  if (origen) salida.append(crear("p", "copia-origen", `El armario de este aparato viene de la copia del ${fechaCorta(origen)}.`));
   salida.append(
     crear("h3", null, "Guardar una copia"),
     crear("p", null, "Crea un archivo con todo el armario de este aparato y lo deja en Descargas. Sirve de copia de seguridad y para llevar los cambios al ordenador."),

@@ -1052,3 +1052,9 @@ html:has(.hoja[open]) { overflow: hidden; }
   justify-content: center;
   gap: 18px;
 }
+
+/* De cuándo es la copia que trajo este aparato, arriba de la hoja de copias. */
+.copia-origen {
+  margin: 0 0 14px !important;
+  font-size: 13px !important;
+}
