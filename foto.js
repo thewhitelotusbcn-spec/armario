@@ -2,7 +2,7 @@
 // y se guarda como foto de tienda. En el ordenador el fondo lo quita el taller; en el
 // móvil, el propio aparato (recortador.js).
 
-import { armario, guardarFotoEnElAparato } from "./base.js";
+import { anadirPrendaAlAparato, armario, guardarFotoEnElAparato, guardarPrenda } from "./base.js";
 import { descargarRecortador, hayRecortador, megasPorDescargar, recortarAqui, soltarRecortador } from "./recortador.js";
 
 const LADO_MAXIMO = 2400; // las fotos de cámara se reducen antes de trabajar con ellas
@@ -77,13 +77,23 @@ export async function descargarLoQueFalta(alAvanzar) {
 // Al cerrar la hoja de edición se libera la memoria que ocupa el recortador del móvil.
 export const terminar = soltarRecortador;
 
+// La fecha y la hora de ahora, para el nombre de una foto: 20261013-184502.
+function sello() {
+  const ahora = new Date();
+  const dos = (numero) => String(numero).padStart(2, "0");
+  return (
+    `${ahora.getFullYear()}${dos(ahora.getMonth() + 1)}${dos(ahora.getDate())}` +
+    `-${dos(ahora.getHours())}${dos(ahora.getMinutes())}${dos(ahora.getSeconds())}`
+  );
+}
+
 // ---------- Quitar el fondo y guardar ----------
 
-// Envía una imagen al taller y devuelve su respuesta.
-async function pedirAlTaller(ruta, imagen, modelo) {
+// Envía una imagen al taller y devuelve su respuesta. "mas" son otros datos para la dirección.
+async function pedirAlTaller(ruta, imagen, modelo, mas = "") {
   let respuesta;
   try {
-    respuesta = await fetch(`${ruta}?modelo=${modelo ? 1 : 0}`, {
+    respuesta = await fetch(`${ruta}?modelo=${modelo ? 1 : 0}${mas}`, {
       method: "POST",
       headers: { "Content-Type": imagen.type },
       body: imagen,
@@ -100,11 +110,15 @@ async function pedirAlTaller(ruta, imagen, modelo) {
 
 // Cómo quedaría una imagen como foto de tienda, sin guardar nada todavía.
 // "modelo" dice si la prenda la lleva puesta una persona.
-// Devuelve { foto, dudoso } y, en el móvil, también el color de la prenda.
+// Devuelve { foto, dudoso, color }: la foto de tienda, si el recorte es dudoso y el color de la prenda.
 export async function recortar(imagen, modelo) {
   if (armario.taller) {
     const respuesta = await pedirAlTaller("../api/recortar", imagen, modelo);
-    return { foto: await respuesta.blob(), dudoso: respuesta.headers.get("X-Dudoso") === "1" };
+    return {
+      foto: await respuesta.blob(),
+      dudoso: respuesta.headers.get("X-Dudoso") === "1",
+      color: respuesta.headers.get("X-Color"),
+    };
   }
   try {
     return await recortarAqui(imagen, modelo);
@@ -129,13 +143,8 @@ export async function cambiarFoto(prenda, imagen, modelo, recorte) {
   for (const ajuste of AJUSTES_DE_FOTO) delete nueva[ajuste];
   if (modelo) nueva.modelo = true;
   // La anterior se apunta entre las otras fotos; la nueva lleva la fecha y la hora en el nombre.
-  const ahora = new Date();
-  const dos = (numero) => String(numero).padStart(2, "0");
-  const fecha =
-    `${ahora.getFullYear()}${dos(ahora.getMonth() + 1)}${dos(ahora.getDate())}` +
-    `-${dos(ahora.getHours())}${dos(ahora.getMinutes())}${dos(ahora.getSeconds())}`;
   nueva.otras_fotos = [prenda.foto_original, ...(prenda.otras_fotos ?? []).filter((f) => f !== prenda.foto_original)];
-  nueva.foto_original = `fotos/movil/${prenda.id}-${fecha}.jpg`;
+  nueva.foto_original = `fotos/movil/${prenda.id}-${sello()}.jpg`;
   if (recorte.color) nueva.color_foto = recorte.color;
   else delete nueva.color_foto;
   nueva.foto_version = Math.round(Date.now() / 1000);
@@ -144,4 +153,57 @@ export async function cambiarFoto(prenda, imagen, modelo, recorte) {
   } catch {
     throw new FalloDeFoto("No se ha podido guardar la foto en este aparato. Puede que no quede espacio.");
   }
+}
+
+// ---------- Prendas nuevas ----------
+
+// Da de alta una prenda nueva a partir de una imagen ya recortada. "datos" trae lo que
+// se sabe de ella (nombre, categoría, color…). Devuelve la ficha creada.
+export async function crearPrenda(imagen, modelo, recorte, datos) {
+  if (armario.taller) {
+    const categoria = `&categoria=${encodeURIComponent(datos.categoria)}`;
+    const respuesta = await pedirAlTaller("../api/prendas", imagen, modelo, categoria);
+    const ficha = await respuesta.json();
+    armario.prendas.push(ficha);
+    try {
+      // El resto de datos se guardan como cualquier otra edición.
+      await guardarPrenda(ficha.id, datos);
+    } catch {
+      // La prenda ya existe; lo que falte se puede corregir después en «Editar».
+    }
+    return ficha;
+  }
+
+  // En el móvil las prendas llevan numeración propia (m001, m002…) para no chocar con
+  // las del ordenador, que empiezan por «p».
+  const usados = armario.prendas.map((p) => (/^m\d+$/.test(p.id) ? Number(p.id.slice(1)) : 0));
+  const id = `m${String(Math.max(0, ...usados) + 1).padStart(3, "0")}`;
+  const ficha = {
+    id,
+    color_secundario: "ninguno",
+    dibujo: "liso",
+    notas: "",
+    revisada: false,
+    foto_original: `fotos/movil/${id}-${sello()}.jpg`,
+    foto_tienda: `catalogo/${id}.webp`,
+    otras_fotos: [],
+    ideas: [],
+    marca: "",
+    linea: "",
+    talla: "",
+    referencia: "",
+    precio: "",
+    composicion: "",
+    comprada: "",
+    foto_version: Math.round(Date.now() / 1000),
+    ...datos,
+  };
+  if (recorte.color) ficha.color_foto = recorte.color;
+  if (modelo) ficha.modelo = true;
+  try {
+    await anadirPrendaAlAparato(ficha, recorte.foto, imagen);
+  } catch {
+    throw new FalloDeFoto("No se ha podido guardar la prenda en este aparato. Puede que no quede espacio.");
+  }
+  return ficha;
 }

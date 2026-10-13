@@ -126,6 +126,26 @@ export async function importarCopia(archivo) {
     const original = archivos.get(prenda.foto_original);
     if (original) originales.set(prenda.id, new Blob([original], { type: "image/jpeg" }));
   }
+
+  // Las prendas añadidas en este aparato (las de numeración «m») que no vienen en la
+  // copia no se pierden: se quedan junto a las de la copia.
+  const enLaCopia = new Set(datos.prendas.map((p) => p.id));
+  const [aqui, idsFotos, fotosAqui, idsOriginales, originalesAqui] = await Promise.all([
+    leerTodo("prendas"),
+    leerClaves("fotos"),
+    leerTodo("fotos"),
+    leerClaves("originales"),
+    leerTodo("originales"),
+  ]);
+  const propias = aqui.filter((p) => /^m\d+$/.test(p.id) && !enLaCopia.has(p.id));
+  for (const prenda of propias) {
+    const foto = fotosAqui[idsFotos.indexOf(prenda.id)];
+    if (foto) fotos.set(prenda.id, foto);
+    const original = originalesAqui[idsOriginales.indexOf(prenda.id)];
+    if (original) originales.set(prenda.id, original);
+  }
+  datos.prendas.push(...propias);
+
   await reemplazarTodo({
     prendas: datos.prendas,
     fotos,

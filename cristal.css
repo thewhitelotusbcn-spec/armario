@@ -200,3 +200,63 @@ body:has(#vista-prenda:not([hidden])) .borde { display: none; }
   background: rgba(255, 255, 255, 0.6);
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.8);
 }
+
+/* ---------- Añadir prendas ---------- */
+
+/* El botón flotante del catálogo, siempre a mano con el pulgar. */
+.anadir {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(22px, env(safe-area-inset-bottom));
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  color: var(--etiqueta);
+  transition: transform 0.35s var(--muelle), filter 0.25s;
+}
+
+.anadir:active {
+  transform: scale(1.08);
+  filter: brightness(1.08);
+}
+
+@media (min-width: 700px) {
+  .anadir {
+    right: 32px;
+    bottom: 32px;
+  }
+}
+
+/* La hoja: arriba el botón para elegir fotos y debajo una ficha por cada prenda elegida. */
+.nueva-inicio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.nueva-inicio .boton { margin-top: 0; }
+
+.nueva-inicio p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.nuevas {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.nuevas:empty { display: none; }
+
+.nueva-quitar {
+  padding: 2px 0;
+  color: var(--acento);
+  font-size: 15px;
+}

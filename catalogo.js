@@ -342,7 +342,10 @@ export function fotoDeTarjeta(id) {
 
 export const enlaceDeTarjeta = (id) => tarjetas.get(id)?.querySelector(".ficha");
 
-// Vuelve a pintar el catálogo después de editar una ficha.
+// La categoría que se está viendo (null si se ve todo).
+export const categoriaActual = () => categoria;
+
+// Vuelve a pintar el catálogo después de editar una ficha o de añadir prendas.
 export function repintarCatalogo() {
   if (categoria && !armario.prendas.some((p) => p.categoria === categoria)) categoria = null;
   pintarCategorias();

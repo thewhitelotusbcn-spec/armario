@@ -69,7 +69,7 @@ function abrirCopias() {
   const entrada = crear("div", "movil-aviso");
   entrada.append(
     crear("h3", null, "Traer una copia"),
-    crear("p", null, "Sustituye el armario de este aparato por el de un archivo «armario-copia». Lo que hayas cambiado aquí y no esté en esa copia se pierde."),
+    crear("p", null, "Sustituye el armario de este aparato por el de un archivo «armario-copia». Las prendas que hayas añadido aquí se conservan; los cambios hechos aquí en las demás se pierden."),
     crearSelector("Elegir archivo", "boton secundario", estado),
     estado,
   );

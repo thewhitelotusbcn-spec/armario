@@ -85,6 +85,8 @@ export const ICONOS = {
     '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
   atras:
     '<svg viewBox="0 0 10 16" width="10" height="16" aria-hidden="true"><path d="M8 2 2 8l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  mas:
+    '<svg viewBox="0 0 22 22" width="22" height="22" aria-hidden="true"><path d="M11 3.5v15M3.5 11h15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
   armario:
     '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.3" y="1.3" width="5.4" height="5.4" rx="1.7"/><rect x="9.3" y="1.3" width="5.4" height="5.4" rx="1.7"/><rect x="1.3" y="9.3" width="5.4" height="5.4" rx="1.7"/><rect x="9.3" y="9.3" width="5.4" height="5.4" rx="1.7"/></g></svg>',
   movil:
@@ -247,6 +249,13 @@ export async function cargarPrendas() {
   for (const direccion of fotosDelAparato.values()) URL.revokeObjectURL(direccion);
   fotosDelAparato.clear();
   ids.forEach((id, i) => fotosDelAparato.set(id, URL.createObjectURL(fotos[i])));
+}
+
+// Guarda en el aparato una prenda nueva con su foto y la añade al armario abierto.
+export async function anadirPrendaAlAparato(ficha, foto, original) {
+  await almacen.guardarFoto(ficha, foto, original);
+  armario.prendas.push(ficha);
+  fotosDelAparato.set(ficha.id, URL.createObjectURL(foto));
 }
 
 // Guarda en el aparato la foto nueva de una prenda (ya recortada) con su imagen original.

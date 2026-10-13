@@ -5,6 +5,7 @@ import { $, armario, cargarPrendas, conTransicion } from "./base.js";
 import { cerrarMenu, enlaceDeTarjeta, fotoDeTarjeta, iniciarCatalogo, moverPulgar } from "./catalogo.js";
 import { iniciarCristal } from "./cristal.js";
 import { iniciarMovil } from "./movil.js";
+import { iniciarNueva } from "./nueva.js";
 import { pintarPrenda } from "./prenda.js";
 
 const vistaCatalogo = $("vista-catalogo");
@@ -138,6 +139,7 @@ async function iniciar() {
     return;
   }
   iniciarCatalogo();
+  iniciarNueva();
   // En el ordenador se ofrece abrirla en el móvil; por su cuenta, traer y guardar copias.
   if (armario.taller) {
     iniciarMovil();
