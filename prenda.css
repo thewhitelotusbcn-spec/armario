@@ -969,3 +969,86 @@ html:has(.hoja[open]) { overflow: hidden; }
 .movil-aviso .campos + .boton { margin-top: 16px; }
 
 .copia-estado.fallo { color: #c4281c; }
+
+/* ---------- El probador ---------- */
+
+.tablero-probar {
+  margin: 10px 4px 0;
+  padding: 0;
+  color: var(--acento);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Las prendas que se van a probar, en fila. */
+.probador-prendas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.probador-prendas .foto {
+  width: 72px;
+  aspect-ratio: 4 / 5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--superficie);
+}
+
+.probador-prendas .foto img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Mi foto, pequeña, con el botón para cambiarla al lado. */
+.probador-mia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.probador-mia img {
+  width: 64px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--superficie);
+}
+
+/* El resultado ocupa el ancho de la hoja; mientras se hace, late. */
+.probador-resultado {
+  margin-top: 16px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--superficie);
+}
+
+.probador-resultado img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.probador-resultado:empty { display: none; }
+
+.probador-resultado.trabajando {
+  aspect-ratio: 3 / 4;
+  animation: nube-latido 1.4s ease-in-out infinite;
+}
+
+.probador-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.probador-acciones .boton { margin-top: 0; }
+
+.probador-enlaces {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}

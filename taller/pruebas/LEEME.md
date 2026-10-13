@@ -1,6 +1,10 @@
-# Pruebas de la nube
+# Pruebas de la nube y del probador
 
-Las dos pruebas usan un GitHub de mentira: no hace falta llave ni internet, y no tocan ningún dato real.
+Las pruebas usan un GitHub y un Gemini de mentira: no hace falta llave ni internet, y no tocan ningún dato real.
+
+- `probar_probador.mjs`: el probador contra un Gemini de mentira. Comprueba conectar la clave, elegir mi foto, probarme una prenda y un look, y los avisos cuando Gemini se niega o se agota el cupo:
+
+      node app\taller\pruebas\probar_probador.mjs app
 
 - `probar_nube.mjs`: dos navegadores de tamaño móvil (dos «aparatos») contra la app de esta carpeta. Comprueba subir todo, bajar todo en un aparato vacío, que un cambio en uno aparece en el otro, fotos y prendas nuevas, sin conexión, choques, reabrir y desconectar. Necesita Node y Playwright (`npm install -g playwright` y `npx playwright install chromium`):
 

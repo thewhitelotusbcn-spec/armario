@@ -168,6 +168,13 @@ function direccionDeFoto(prenda) {
   return `../${prenda.foto_tienda}${version}`;
 }
 
+// La foto de tienda de una prenda como archivo (para mandarla a algún sitio).
+export async function fotoDeTienda(prenda) {
+  const respuesta = await fetch(direccionDeFoto(prenda));
+  if (!respuesta.ok) throw new Error(respuesta.status);
+  return respuesta.blob();
+}
+
 // Hace un cambio en la página con una transición animada, si el navegador lo permite.
 // Devuelve una promesa que se cumple cuando la transición ha terminado.
 export function conTransicion(cambio) {

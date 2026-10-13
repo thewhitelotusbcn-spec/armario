@@ -28,6 +28,7 @@ import {
 } from "./base.js";
 import { repintarCatalogo } from "./catalogo.js";
 import { combinaCon, looksCon } from "./combinar.js";
+import { abrirProbador } from "./probador.js";
 import {
   FalloDeFoto,
   avisarAlTaller,
@@ -76,13 +77,18 @@ function crearBarra(prenda) {
   const navegacion = crear("div", "barra-grupo");
   navegacion.append(volver, inicio);
 
+  const probar = crear("button", "cristal capsula", "Probar");
+  probar.type = "button";
+  probar.addEventListener("click", () => abrirProbador([prenda]));
   const editar = crear("button", "cristal capsula", "Editar");
   editar.type = "button";
   editar.addEventListener("click", () => abrirEdicion(prenda));
+  const acciones = crear("div", "barra-grupo");
+  acciones.append(probar, editar);
 
   const barra = crear("div", "barra-prenda");
   barra.id = "barra-prenda";
-  barra.append(navegacion, editar);
+  barra.append(navegacion, acciones);
   return barra;
 }
 
@@ -252,12 +258,17 @@ function crearTablero(look, actual) {
     lienzo.append(enlace);
   }
 
+  const probar = crear("button", "tablero-probar", "Probármelo");
+  probar.type = "button";
+  probar.addEventListener("click", () => abrirProbador(look.piezas.map((pieza) => pieza.prenda)));
+
   const tablero = crear("article", "tablero");
   tablero.append(
     lienzo,
     crear("h3", "tablero-titulo", look.titulo),
     crear("p", "tablero-motivo", look.motivo),
     crear("p", "tablero-piezas", look.piezas.map((pieza) => pieza.prenda.nombre).join(" · ")),
+    probar,
   );
   return tablero;
 }

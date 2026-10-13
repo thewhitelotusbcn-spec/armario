@@ -63,6 +63,7 @@ export const guardar = (cajon, valor, clave) =>
 // Las rutas de una prenda en la nube: su ficha, su foto de tienda y su imagen original.
 export const rutaDeFicha = (id) => `prendas/${id}.json`;
 export const RUTA_AJUSTES = "ajustes.json";
+export const RUTA_MI_FOTO = "mi-foto.jpg"; // mi foto para el probador
 
 function apuntar(tanda, pendientes) {
   const cajon = tanda.objectStore("pendientes");
@@ -89,6 +90,7 @@ export async function apuntarTodo() {
     const fotos = tanda.objectStore("fotos").getAllKeys();
     const originales = tanda.objectStore("originales").getAllKeys();
     const tallas = tanda.objectStore("ajustes").get("mis_tallas");
+    const miFoto = tanda.objectStore("ajustes").get("mi_foto");
     const prendas = tanda.objectStore("prendas").getAll();
     // Las peticiones se atienden por orden: al llegar la última ya están las otras.
     prendas.onsuccess = () => {
@@ -99,6 +101,7 @@ export async function apuntarTodo() {
       }
       // Las tallas solo si este aparato las tiene: un aparato vacío no pisa las de la nube.
       if (tallas.result) apuntar(tanda, [{ ruta: RUTA_AJUSTES, tipo: "ajustes" }]);
+      if (miFoto.result) apuntar(tanda, [{ ruta: RUTA_MI_FOTO, tipo: "mi_foto" }]);
     };
   });
   avisarPendientes();
@@ -124,6 +127,16 @@ export async function guardarFoto(prenda, foto, original) {
   avisarPendientes();
 }
 
+// Guarda mi foto para el probador (o la quita, con null).
+export async function guardarMiFoto(foto) {
+  await operar(["ajustes", "pendientes"], "readwrite", (tanda) => {
+    if (foto) tanda.objectStore("ajustes").put(foto, "mi_foto");
+    else tanda.objectStore("ajustes").delete("mi_foto");
+    if (foto) apuntar(tanda, [{ ruta: RUTA_MI_FOTO, tipo: "mi_foto" }]);
+  });
+  if (foto) avisarPendientes();
+}
+
 // Sustituye todo el armario del aparato por el de una copia. Todo queda pendiente de
 // subir; lo que la nube ya tenga igual no se vuelve a subir.
 export async function reemplazarTodo({ prendas, fotos, originales, ajustes }) {
@@ -142,12 +155,13 @@ export async function reemplazarTodo({ prendas, fotos, originales, ajustes }) {
 }
 
 // Guarda lo que llega de la nube, sin apuntarlo como pendiente: ya está allí.
-export function guardarDeLaNube({ prendas = [], fotos = new Map(), originales = new Map(), misTallas = null }) {
+export function guardarDeLaNube({ prendas = [], fotos = new Map(), originales = new Map(), misTallas = null, miFoto = null }) {
   return operar(CAJONES, "readwrite", (tanda) => {
     for (const prenda of prendas) tanda.objectStore("prendas").put(prenda);
     for (const [id, foto] of fotos) tanda.objectStore("fotos").put(foto, id);
     for (const [id, original] of originales) tanda.objectStore("originales").put(original, id);
     if (misTallas) tanda.objectStore("ajustes").put(misTallas, "mis_tallas");
+    if (miFoto) tanda.objectStore("ajustes").put(miFoto, "mi_foto");
   });
 }
 
@@ -162,12 +176,15 @@ export const quitarPendiente = (ruta, cuando) =>
     };
   });
 
-// Los datos de la nube: la cuenta ("cuenta") y por dónde va ("estado").
+// Los datos de la nube: la cuenta ("cuenta") y por dónde va ("estado"). En el mismo
+// cajón va la clave del probador ("gemini"), que no se pierde al traer una copia.
 export const leerNube = (clave) => leer("nube", clave);
 export const guardarNube = (clave, valor) => guardar("nube", valor, clave);
+export const borrarNube = (clave) => operar("nube", "readwrite", (tanda) => tanda.objectStore("nube").delete(clave));
 export const vaciarNube = () =>
   operar(["nube", "pendientes"], "readwrite", (tanda) => {
-    tanda.objectStore("nube").clear();
+    tanda.objectStore("nube").delete("cuenta");
+    tanda.objectStore("nube").delete("estado");
     tanda.objectStore("pendientes").clear();
   });
 

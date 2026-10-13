@@ -212,7 +212,7 @@ try {
   console.log("4. Editar en B: llega a A en segundos");
   await B.pagina.goto(URL_APP + "#/prenda/p001");
   await B.pagina.waitForSelector("#vista-prenda:not([hidden]) h1");
-  await B.pagina.click("#barra-prenda button");
+  await B.pagina.click("#barra-prenda button:has-text('Editar')");
   await B.pagina.waitForSelector("#hoja form");
   await B.pagina.fill('#hoja input[name="nombre"]', "Camisa blanca Oxford");
   await B.pagina.click("#hoja .hoja-accion.principal");
@@ -247,7 +247,7 @@ try {
   await B.pagina.goto(URL_APP + "#/prenda/p003");
   await B.pagina.waitForSelector("#vista-prenda:not([hidden]) h1");
   await B.contexto.setOffline(true);
-  await B.pagina.click("#barra-prenda button");
+  await B.pagina.click("#barra-prenda button:has-text('Editar')");
   await B.pagina.fill('#hoja input[name="nombre"]', "Jersey camel de lana");
   await B.pagina.click("#hoja .hoja-accion.principal");
   await B.pagina.waitForSelector("#hoja:not([open])");
