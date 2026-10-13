@@ -3,6 +3,7 @@
 
 import { $, CATEGORIAS, COLORES, ICONOS, avisar, crear, mayus } from "./base.js";
 import { categoriaActual, repintarCatalogo } from "./catalogo.js";
+import { FalloDeGemini, describirPrenda, leerClave } from "./gemini.js";
 import {
   FalloDeFoto,
   avisarAlTaller,
@@ -93,6 +94,11 @@ function abrir() {
   let megas = null; // en el móvil, lo que falta por descargar para quitar fondos
   let avisado = false;
   let guardando = false;
+  let clave = null; // la clave de Gemini, si está puesta: entonces propone la ficha de cada prenda
+  leerClave().then(
+    (guardada) => (clave = guardada ?? null),
+    () => {},
+  );
 
   const titulo = crear("h2", null, "Añadir prendas");
   titulo.id = "nueva-titulo";
@@ -185,6 +191,7 @@ function abrir() {
     let direccion = null;
     let color = "otro";
     let nombreEscrito = false; // si se ha escrito un nombre a mano, ya no se cambia solo
+    let propuesta = null; // lo que Gemini dice de la prenda, si hay clave
 
     const miniatura = crear("span", "foto foto-mini trabajando");
     const estado = crear("p", "campo-ayuda", "Quitando el fondo…");
@@ -214,8 +221,25 @@ function abrir() {
     grupo.append(filaFoto, crearFila("Nombre", nombre), crearFila("Categoría", categoria), crearFila("La lleva puesta un modelo", conModelo));
 
     const nombrar = () => {
-      if (!nombreEscrito && categoria.value) nombre.value = nombreHabitual(categoria.value, color);
+      if (nombreEscrito) return;
+      if (propuesta?.nombre) nombre.value = propuesta.nombre;
+      else if (categoria.value) nombre.value = nombreHabitual(categoria.value, color);
     };
+
+    // Gemini mira la foto ya recortada y propone la ficha; lo que ya se haya tocado a mano se respeta.
+    async function proponer() {
+      estado.textContent = "Gemini mira la prenda…";
+      try {
+        propuesta = await describirPrenda(clave, recorte.foto);
+        if (propuesta.color_principal) color = propuesta.color_principal;
+        if (!categoria.value && propuesta.categoria) categoria.value = propuesta.categoria;
+        nombrar();
+        estado.textContent = "Propuesta de Gemini: revísala.";
+      } catch (motivo) {
+        propuesta = null;
+        estado.textContent = motivo instanceof FalloDeGemini ? `Sin propuesta de Gemini: ${motivo.message}` : "";
+      }
+    }
 
     function mostrar(contenido) {
       if (direccion) URL.revokeObjectURL(direccion);
@@ -241,6 +265,7 @@ function abrir() {
         color = colorMasParecido(recorte.color);
         nombrar();
         estado.textContent = recorte.dudoso ? "Recorte dudoso: sale mejor con fondo liso." : "";
+        if (clave) await proponer();
       } catch (motivo) {
         recorte = null;
         estado.textContent = motivo instanceof FalloDeFoto ? motivo.message : "No se ha podido quitar el fondo.";
@@ -265,15 +290,18 @@ function abrir() {
       ocupada: () => ocupada,
       datos() {
         const [, , temporada, registro, formalidad, tejido] = HABITUAL[categoria.value] ?? [];
-        return {
+        const datos = {
           nombre: nombre.value.trim() || (categoria.value ? nombreHabitual(categoria.value, color) : ""),
           categoria: categoria.value,
           color_principal: color,
-          tejido,
+          tejido: propuesta?.tejido ?? tejido,
           formalidad,
           registro,
           temporada,
         };
+        if (propuesta?.color_secundario) datos.color_secundario = propuesta.color_secundario;
+        if (propuesta?.dibujo) datos.dibujo = propuesta.dibujo;
+        return datos;
       },
       guardar: () => crearPrenda(imagen, conModelo.checked, recorte, elegida.datos()),
       quitar() {

@@ -23,6 +23,7 @@ const ARCHIVOS = [
   "nueva.js",
   "nube.js",
   "probador.js",
+  "gemini.js",
   "prenda.js",
   "recortador.js",
   "recortador-hilo.js",

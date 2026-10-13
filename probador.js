@@ -4,13 +4,10 @@
 // y además viaja con la nube para no tener que elegirla en cada aparato.
 
 import * as almacen from "./almacen.js";
-import { $, avisar, crear, crearFoto, fotoDeTienda, mayus } from "./base.js";
+import { $, avisar, crear, crearFoto, fotoDeTienda } from "./base.js";
+import { FalloDeGemini, borrarClave, comprobarClave, guardarClave, leerClave, parteDeImagen, pedir, textoDelFallo } from "./gemini.js";
 
-const API = "https://generativelanguage.googleapis.com/v1beta";
-// Los modelos de Gemini que hacen imágenes, por orden de preferencia: se usa el primero que la clave abra.
-const MODELOS = ["gemini-2.5-flash-image", "gemini-3-pro-image-preview", "gemini-2.5-flash-image-preview"];
 const LADO_FOTO = 1280; // mi foto se reduce a este tamaño antes de guardarla y mandarla
-const ESPERA = 120_000; // lo más que se espera a Gemini
 
 const hoja = $("hoja-probador");
 
@@ -18,50 +15,6 @@ const hoja = $("hoja-probador");
 class FalloDelProbador extends Error {}
 
 // ---------- Hablar con Gemini ----------
-
-function pedir(ruta, clave, cuerpo) {
-  return fetch(`${API}${ruta}`, {
-    method: cuerpo ? "POST" : "GET",
-    headers: { "x-goog-api-key": clave, ...(cuerpo ? { "Content-Type": "application/json" } : {}) },
-    body: cuerpo ? JSON.stringify(cuerpo) : undefined,
-    signal: AbortSignal.timeout(ESPERA),
-  });
-}
-
-async function textoDelFallo(respuesta) {
-  const mensaje = await respuesta.json().then((r) => r.error?.message ?? "", () => "");
-  if (respuesta.status === 400 && /API key/i.test(mensaje)) return "La clave no vale. Comprueba que la has copiado entera.";
-  if (respuesta.status === 403) return "La clave no tiene permiso para esto. Crea otra en Google AI Studio.";
-  if (respuesta.status === 429) return "Gemini dice que has llegado al límite de hoy, o que vas demasiado rápido. Espera un rato.";
-  if (respuesta.status === 503 || respuesta.status === 500) return "Gemini está saturado ahora mismo. Prueba otra vez en un minuto.";
-  return `Gemini ha contestado con un error (${respuesta.status})${mensaje ? `: ${mensaje}` : ""}.`;
-}
-
-// Comprueba la clave y elige el modelo. Devuelve { token, modelo }.
-async function comprobarClave(token) {
-  let ultimo = null;
-  for (const modelo of MODELOS) {
-    let respuesta;
-    try {
-      respuesta = await pedir(`/models/${modelo}`, token);
-    } catch {
-      throw new FalloDelProbador("No se ha podido llegar a Gemini. Comprueba la conexión.");
-    }
-    if (respuesta.ok) return { token, modelo };
-    ultimo = respuesta;
-    if (respuesta.status !== 404) break; // con una clave mala no hace falta seguir probando modelos
-  }
-  if (ultimo?.status === 404) throw new FalloDelProbador("Esta clave no abre ningún modelo de imágenes de Gemini.");
-  throw new FalloDelProbador(await textoDelFallo(ultimo));
-}
-
-function aBase64(archivo) {
-  return new Promise((listo) => {
-    const lector = new FileReader();
-    lector.onload = () => listo(lector.result.split(",")[1]);
-    lector.readAsDataURL(archivo);
-  });
-}
 
 // Lo que se le pide a Gemini. En inglés, que es con lo que mejor trabajan los modelos de imágenes.
 function encargo(prendas) {
@@ -78,11 +31,8 @@ function encargo(prendas) {
 
 // Pide a Gemini la imagen mía con las prendas puestas. Devuelve un Blob.
 async function vestirme(clave, miFoto, prendas) {
-  const partes = [{ text: encargo(prendas) }, { inline_data: { mime_type: miFoto.type || "image/jpeg", data: await aBase64(miFoto) } }];
-  for (const prenda of prendas) {
-    const foto = await fotoDeTienda(prenda);
-    partes.push({ inline_data: { mime_type: foto.type || "image/webp", data: await aBase64(foto) } });
-  }
+  const partes = [{ text: encargo(prendas) }, await parteDeImagen(miFoto, "image/jpeg")];
+  for (const prenda of prendas) partes.push(await parteDeImagen(await fotoDeTienda(prenda), "image/webp"));
   let respuesta;
   try {
     respuesta = await pedir(`/models/${clave.modelo}:generateContent`, clave.token, {
@@ -207,11 +157,11 @@ function pintarClave(cuerpo, prendas) {
     estado.textContent = "Comprobando…";
     try {
       const clave = await comprobarClave(entrada.value.trim());
-      await almacen.guardarNube("gemini", clave);
+      await guardarClave(clave);
       avisar("Gemini conectado");
       pintar(prendas);
     } catch (fallo) {
-      estado.textContent = fallo instanceof FalloDelProbador ? fallo.message : "No se ha podido conectar.";
+      estado.textContent = fallo instanceof FalloDelProbador || fallo instanceof FalloDeGemini ? fallo.message : "No se ha podido conectar.";
       estado.classList.add("fallo");
       conectar.disabled = false;
     }
@@ -228,7 +178,7 @@ async function elegirMiFoto(archivo, estado, prendas) {
     await almacen.guardarMiFoto(await reducir(archivo));
     pintar(prendas);
   } catch (fallo) {
-    estado.textContent = fallo instanceof FalloDelProbador ? fallo.message : "No se ha podido guardar la foto.";
+    estado.textContent = fallo instanceof FalloDelProbador || fallo instanceof FalloDeGemini ? fallo.message : "No se ha podido guardar la foto.";
     estado.classList.add("fallo");
   }
 }
@@ -296,7 +246,7 @@ function pintarProbador(cuerpo, prendas, clave, miFoto) {
       acciones.append(guardar);
       probar.textContent = "Otra vez";
     } catch (fallo) {
-      estado.textContent = fallo instanceof FalloDelProbador ? fallo.message : "No se ha podido hacer la imagen. Prueba otra vez.";
+      estado.textContent = fallo instanceof FalloDelProbador || fallo instanceof FalloDeGemini ? fallo.message : "No se ha podido hacer la imagen. Prueba otra vez.";
       estado.classList.add("fallo");
     }
     resultado.classList.remove("trabajando");
@@ -309,7 +259,7 @@ function pintarProbador(cuerpo, prendas, clave, miFoto) {
   const enlaces = crear("div", "probador-enlaces");
   enlaces.append(
     crearAccion("Cambiar la clave de Gemini", "movil-quitar", async () => {
-      await almacen.borrarNube("gemini");
+      await borrarClave();
       pintar(prendas);
     }),
   );
@@ -325,7 +275,7 @@ function pintarProbador(cuerpo, prendas, clave, miFoto) {
 }
 
 async function pintar(prendas) {
-  const [clave, miFoto] = await Promise.all([almacen.leerNube("gemini"), almacen.leer("ajustes", "mi_foto")]);
+  const [clave, miFoto] = await Promise.all([leerClave(), almacen.leer("ajustes", "mi_foto")]);
   const titulo = crear("h2", null, "Probador");
   titulo.id = "probador-titulo";
   const cabecera = crear("header", "hoja-cabecera");

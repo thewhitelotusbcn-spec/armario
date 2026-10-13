@@ -6,6 +6,10 @@ Las pruebas usan un GitHub y un Gemini de mentira: no hace falta llave ni intern
 
       node app\taller\pruebas\probar_probador.mjs app
 
+- `probar_nueva.mjs`: el «+» con un recortador y un Gemini de mentira. Comprueba que sin clave funciona como siempre, que con clave Gemini propone nombre, categoría, tejido, color y dibujo de cada foto, que lo escrito a mano se respeta y que si Gemini falla se sigue igual:
+
+      node app\taller\pruebas\probar_nueva.mjs app
+
 - `probar_nube.mjs`: dos navegadores de tamaño móvil (dos «aparatos») contra la app de esta carpeta. Comprueba subir todo, bajar todo en un aparato vacío, que un cambio en uno aparece en el otro, fotos y prendas nuevas, sin conexión, choques, reabrir y desconectar. Necesita Node y Playwright (`npm install -g playwright` y `npx playwright install chromium`):
 
       node app\taller\pruebas\probar_nube.mjs app
