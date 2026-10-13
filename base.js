@@ -268,12 +268,33 @@ export async function guardarFotoEnElAparato(prenda, nueva, foto, original) {
   fotosDelAparato.set(prenda.id, URL.createObjectURL(foto));
 }
 
+// Pone en el armario abierto lo que acaba de llegar de la nube (ya guardado en el aparato):
+// fichas nuevas o cambiadas, fotos de tienda y mis tallas. Devuelve los ids tocados.
+export function aplicarDeLaNube({ prendas = [], fotos = new Map(), misTallas = null }) {
+  for (const ficha of prendas) {
+    const prenda = armario.prendas.find((p) => p.id === ficha.id);
+    if (!prenda) {
+      armario.prendas.push(ficha);
+      continue;
+    }
+    for (const campo of Object.keys(prenda)) delete prenda[campo];
+    Object.assign(prenda, ficha);
+  }
+  for (const [id, foto] of fotos) {
+    const anterior = fotosDelAparato.get(id);
+    if (anterior) URL.revokeObjectURL(anterior);
+    fotosDelAparato.set(id, URL.createObjectURL(foto));
+  }
+  if (misTallas) armario.misTallas = misTallas;
+  return [...new Set([...prendas.map((p) => p.id), ...fotos.keys()])];
+}
+
 // Guarda los cambios de una ficha (en el ordenador o en el aparato) y actualiza la que tiene la app.
 export async function guardarPrenda(id, cambios) {
   const prenda = armario.prendas.find((p) => p.id === id);
   if (!armario.taller) {
     Object.assign(prenda, cambios);
-    await almacen.guardar("prendas", prenda);
+    await almacen.guardarPrenda(prenda);
     return prenda;
   }
   const respuesta = await fetch(`../api/prendas/${id}`, {

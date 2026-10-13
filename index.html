@@ -27,7 +27,10 @@
       </div>
       <!-- En el ordenador: cómo abrir la app en el móvil. En el móvil: copias del armario. -->
       <button class="cristal capsula movil" id="movil" type="button" hidden></button>
-      <button class="cristal capsula movil" id="copia" type="button" hidden>Copias</button>
+      <div class="movil-botones">
+        <button class="cristal capsula movil" id="nube" type="button" hidden>Nube</button>
+        <button class="cristal capsula movil" id="copia" type="button" hidden>Copias</button>
+      </div>
     </header>
     <div id="centinela"></div>
 
@@ -61,7 +64,8 @@
     <section class="vacio bienvenida" id="bienvenida" hidden>
       <svg class="bienvenida-icono" viewBox="0 0 100 100" aria-hidden="true"><path d="M40.8 28.5A9.5 9.5 0 1 1 50 35.5V45L15 68h70L50 45" fill="none" stroke="currentColor" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <h2>Tu armario aún no está en este aparato</h2>
-      <p>Trae la copia que se prepara en el ordenador. Está en la carpeta Descargas y se llama «armario-copia».</p>
+      <p>Conecta la nube, si ya la usas en otro aparato, o trae la copia que se prepara en el ordenador (está en Descargas y se llama «armario-copia»).</p>
+      <div class="bienvenida-botones" id="bienvenida-botones"></div>
       <p class="copia-estado" id="estado-copia" role="status"></p>
     </section>
   </div>
@@ -74,6 +78,7 @@
   <dialog class="hoja hoja-movil" id="hoja-movil" aria-labelledby="movil-titulo"></dialog>
   <dialog class="hoja hoja-movil" id="hoja-copia" aria-labelledby="copia-titulo"></dialog>
   <dialog class="hoja" id="hoja-nueva" aria-labelledby="nueva-titulo"></dialog>
+  <dialog class="hoja hoja-movil" id="hoja-nube" aria-labelledby="nube-titulo"></dialog>
   <div class="cristal tostada" id="tostada" role="status"></div>
 
   <script type="module" src="app.js"></script>

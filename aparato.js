@@ -4,6 +4,7 @@
 import { pedirPermanencia } from "./almacen.js";
 import { $, armario, avisar, crear } from "./base.js";
 import { exportarCopia, importarCopia } from "./copia.js";
+import { abrirNube, iniciarNube } from "./nube.js";
 
 const hoja = $("hoja-copia");
 
@@ -91,10 +92,16 @@ export function iniciarAparato() {
   // Con esto la app se abre aunque no haya internet.
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
+  // La nube (si está conectada) se pone al día desde el principio, haya armario o no.
+  iniciarNube();
+
   if (armario.prendas.length === 0) {
-    // Primera vez en este aparato: no hay armario todavía, hay que traer la copia.
+    // Primera vez en este aparato: no hay armario todavía, hay que conectar la nube o traer la copia.
     const estado = $("estado-copia");
-    estado.before(crearSelector("Traer mi armario", "boton", estado));
+    const nube = crear("button", "boton", "Conectar la nube");
+    nube.type = "button";
+    nube.addEventListener("click", abrirNube);
+    $("bienvenida-botones").append(nube, crearSelector("Traer una copia", "boton secundario", estado));
     $("bienvenida").hidden = false;
     document.body.classList.add("sin-armario");
     $("recuento").textContent = "";

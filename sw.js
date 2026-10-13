@@ -21,6 +21,7 @@ const ARCHIVOS = [
   "foto.js",
   "movil.js",
   "nueva.js",
+  "nube.js",
   "prenda.js",
   "recortador.js",
   "recortador-hilo.js",

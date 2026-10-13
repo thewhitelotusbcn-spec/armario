@@ -918,3 +918,54 @@
 
 /* La página no se mueve por detrás mientras la hoja está abierta. */
 html:has(.hoja[open]) { overflow: hidden; }
+
+/* ---------- La nube ---------- */
+
+/* En el móvil, arriba a la derecha van dos botones: la nube y las copias. */
+.movil-botones {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.movil-botones:not(:has(.movil:not([hidden]))) { display: none; }
+
+/* Un punto rojo en el botón cuando la nube tiene un problema. */
+.capsula.fallo::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #ff3b30;
+}
+
+.capsula.trabajando { animation: nube-latido 1.4s ease-in-out infinite; }
+
+@keyframes nube-latido {
+  50% { opacity: 0.55; }
+}
+
+.bienvenida-botones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.nube-pasos li { align-items: start; }
+
+.nube-enlace {
+  grid-column: 2;
+  justify-self: start;
+  color: var(--acento);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.movil-aviso .campos { text-align: left; }
+
+.movil-aviso .campos + .boton { margin-top: 16px; }
+
+.copia-estado.fallo { color: #c4281c; }

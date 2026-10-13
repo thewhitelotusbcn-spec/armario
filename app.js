@@ -7,6 +7,7 @@ import { iniciarCristal } from "./cristal.js";
 import { iniciarMovil } from "./movil.js";
 import { iniciarNueva } from "./nueva.js";
 import { pintarPrenda } from "./prenda.js";
+import { repintarCatalogo } from "./catalogo.js";
 
 const vistaCatalogo = $("vista-catalogo");
 const vistaPrenda = $("vista-prenda");
@@ -123,6 +124,18 @@ addEventListener("hashchange", () => {
   porEnlace = false;
   pasos = pasosDesdeElCatalogo();
   navegar();
+});
+
+// Cuando llegan cambios de la nube se repinta lo que se esté viendo.
+document.addEventListener("armario-actualizado", (evento) => {
+  repintarCatalogo();
+  if (ruta.vista === "prenda" && evento.detail.ids.includes(ruta.id)) {
+    const prenda = armario.prendas.find((p) => p.id === ruta.id);
+    if (!prenda) return;
+    pintarPrenda(ruta.id);
+    document.title = `${prenda.nombre} · Armario`;
+    medirBarra();
+  }
 });
 
 addEventListener("scroll", marcarDesplazado, { passive: true });
