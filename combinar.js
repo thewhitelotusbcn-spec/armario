@@ -93,7 +93,7 @@ export function afinidad(a, b) {
 
   const salto = Math.abs(a.formalidad - b.formalidad);
   if (salto >= 3) return 0;
-  let nota = armonia(a, b) * [1, 0.92, 0.6][salto];
+  let nota = armonia(a, b) * [1, 0.92, 0.5][salto];
 
   if (a.registro !== b.registro) nota *= [a.registro, b.registro].includes("puente") ? 0.93 : 0.5;
   if (a.dibujo !== "liso" && b.dibujo !== "liso") nota *= 0.55; // dos dibujos compiten
@@ -191,9 +191,10 @@ function conjuntosCon(prenda, todas) {
           }
           if (Math.min(...notas) < MINIMO) continue;
 
-          // Con armonía parecida se prefiere el conjunto con más capas: es un look más completo.
+          // Con armonía parecida se prefiere el conjunto con más capas (es un look más
+          // completo) y, sobre todo, el que no mezcla estilos.
           const media = notas.reduce((suma, n) => suma + n, 0) / notas.length;
-          conjuntos.push({ piezas, temporadas, nota: media + (piezas.length - 2) * 0.08 });
+          conjuntos.push({ piezas, temporadas, nota: media + (piezas.length - 2) * 0.08 + coherencia(piezas) });
         }
       }
     }
@@ -204,19 +205,39 @@ function conjuntosCon(prenda, todas) {
 // La formalidad media de las piezas de un conjunto.
 const formalidadDe = (piezas) => piezas.reduce((suma, pieza) => suma + pieza.prenda.formalidad, 0) / piezas.length;
 
+// Cómo de bien casan los estilos de un conjunto: todo del mismo registro suma; mezclar
+// sastre con relajado (aunque haya una prenda puente en medio) resta. Un look tiene que
+// contar una sola historia.
+function coherencia(piezas) {
+  const registros = new Set(piezas.map((pieza) => pieza.prenda.registro));
+  if (registros.has("sastre") && registros.has("relajado")) return -0.2;
+  if (registros.size === 1) return 0.06;
+  return 0;
+}
+
+// El registro que manda en un conjunto: sastre o relajado si hay alguna prenda así; si no, puente.
+function registroDe(piezas) {
+  const registros = piezas.map((pieza) => pieza.prenda.registro);
+  if (registros.includes("sastre")) return "sastre";
+  if (registros.includes("relajado")) return "relajado";
+  return "puente";
+}
+
 // El calzado que mejor acompaña a un conjunto en esa época, o null si ninguno encaja con todo.
 // "fijo" es un calzado que ya viene impuesto (cuando el look se monta a partir de él).
 function calzadoPara(conjunto, temporada, todas, fijo = null) {
   if (fijo) return fijo;
   let mejor = null;
   const formalidad = formalidadDe(conjunto.piezas);
+  const registro = registroDe(conjunto.piezas);
   for (const zapato of todas) {
     if (PAPEL[zapato.categoria] !== "pies" || !zapato.temporada.includes(temporada)) continue;
     const notas = conjunto.piezas.map((pieza) => afinidad(zapato, pieza.prenda));
     if (Math.min(...notas) < MINIMO) continue;
-    // A igual armonía, el calzado que va con el tono del look: ni zapato de vestir con
-    // camiseta ni zapatilla con traje.
-    const media = notas.reduce((suma, n) => suma + n, 0) / notas.length - Math.abs(zapato.formalidad - formalidad) * 0.12;
+    // A igual armonía, el calzado que va con el tono y el estilo del look: ni zapato de
+    // vestir con camiseta ni zapatilla con traje.
+    const contrario = (registro === "sastre" && zapato.registro === "relajado") || (registro === "relajado" && zapato.registro === "sastre");
+    const media = notas.reduce((suma, n) => suma + n, 0) / notas.length - Math.abs(zapato.formalidad - formalidad) * 0.12 - (contrario ? 0.25 : 0);
     if (!mejor || media > mejor.media) mejor = { zapato, media };
   }
   return mejor?.zapato ?? null;

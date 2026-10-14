@@ -23,6 +23,8 @@ const camiseta = looksCon(armario[2], armario);
 comprobar("los looks de la camiseta calzan zapatillas, no zapato de vestir", camiseta.length > 0 && camiseta.every((l) => { const z = l.piezas.find((p) => p.papel === "pies"); return !z || z.prenda.id === "m1"; }), camiseta.map(nombres).join(" | "));
 const americana = looksCon(armario[0], armario);
 comprobar("los looks de la americana con pantalón de vestir calzan el zapato", americana.some((l) => l.piezas.some((p) => p.prenda.id === "p5") && l.piezas.find((p) => p.papel === "pies")?.prenda.id === "p7"), americana.map(nombres).join(" | "));
+const camisa = looksCon(armario[1], armario);
+comprobar("ningún look de la camisa mezcla sastre con relajado", camisa.length > 0 && camisa.every((l) => { const r = new Set(l.piezas.map((p) => p.prenda.registro)); return !(r.has("sastre") && r.has("relajado")); }), camisa.map(nombres).join(" | "));
 const combina = combinaCon(armario[7], armario);
 comprobar("«Combina con» de las zapatillas no incluye el pantalón de vestir", !combina.some((g) => g.prendas.some((p) => p.id === "p5")));
 console.log(`${bien} de ${bien + mal} comprobaciones bien`);

@@ -7,9 +7,9 @@
 
 :root {
   /* Velo: cuánto blanco lleva el cristal. Menos velo = más transparente. */
-  --cristal-velo: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.2) 100%);
+  --cristal-velo: linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.12) 100%);
   /* Poco desenfoque: lo de detrás se reconoce, como en el cristal de iOS 26. */
-  --cristal-fondo: blur(3.5px) saturate(185%) brightness(1.06);
+  --cristal-fondo: blur(5px) saturate(200%) brightness(1.06);
   /* Canto: una línea de luz arriba a la izquierda y otra, más suave, abajo a la derecha. */
   --cristal-canto:
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.55),
@@ -38,13 +38,7 @@
 :root:active-view-transition .barra { view-transition-name: barra; }
 :root:active-view-transition .barra-prenda { view-transition-name: barra-prenda; }
 
-/* Las barras del catálogo llevan texto: algo más de velo y de desenfoque para leerlo bien. */
-.categorias,
-.filtros {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.3) 100%);
-  -webkit-backdrop-filter: blur(7px) saturate(185%) brightness(1.06);
-  backdrop-filter: blur(7px) saturate(185%) brightness(1.06);
-}
+/* Las barras del catálogo son el mismo cristal que el «+»: el texto se lee por su halo claro. */
 
 /* Al tocarlo, el cristal responde: crece un poco y se enciende. */
 .redondo,
