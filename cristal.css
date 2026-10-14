@@ -80,8 +80,11 @@
 /* Las categorías sin elegir, algo más oscuras para leerse sobre un cristal más claro. */
 .pildora { color: rgba(60, 60, 67, 0.72); }
 
-/* Bajo la barra el contenido apenas se desvanece: tiene que verse a través del cristal. */
+/* Bajo la barra el contenido apenas se desvanece y, sobre todo, no se desenfoca: el único
+   cristal es el de las barras, igual que el del botón de añadir. */
 .borde {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   background: linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0.7) 0,
