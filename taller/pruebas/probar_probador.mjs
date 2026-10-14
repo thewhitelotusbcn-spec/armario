@@ -34,6 +34,7 @@ async function fake(route) {
   const cuerpo = JSON.parse(req.postData());
   gemini.peticiones.push(cuerpo);
   await new Promise((r) => setTimeout(r, 800));
+  if (gemini.fallar === "gratis") { gemini.fallar = null; return responder(429, { error: { code: 429, message: "You exceeded your current quota, please check your plan and billing details.", status: "RESOURCE_EXHAUSTED", details: [{ "@type": "type.googleapis.com/google.rpc.QuotaFailure", violations: [{ quotaMetric: "generativelanguage.googleapis.com/generate_content_free_tier_requests", quotaId: "GenerateContentRequestsPerDayPerProjectPerModel-FreeTier", quotaDimensions: { model: "gemini-2.5-flash-image", location: "global" }, quotaValue: "0" }] }] } }); }
   if (gemini.fallar) { const f = gemini.fallar; gemini.fallar = null; return responder(f, { error: { code: f, message: "Resource has been exhausted" } }); }
   if (gemini.bloquear) { gemini.bloquear = false; return responder(200, { candidates: [{ finishReason: "IMAGE_SAFETY", content: { parts: [] } }] }); }
   return responder(200, { candidates: [{ finishReason: "STOP", content: { role: "model", parts: [{ text: "Here you go." }, { inlineData: { mimeType: "image/png", data: gemini.png } }] } }] });
@@ -125,6 +126,10 @@ try {
   await p.click("#hoja-probador button.boton");
   await p.waitForFunction(() => /límite/.test(document.querySelector("#hoja-probador .copia-estado")?.textContent ?? ""), null, { timeout: 20000 });
   comprobar("si se agota el cupo, lo dice", true);
+  gemini.fallar = "gratis";
+  await p.click("#hoja-probador button.boton");
+  await p.waitForFunction(() => /plan gratuito/.test(document.querySelector("#hoja-probador .copia-estado")?.textContent ?? ""), null, { timeout: 20000 });
+  comprobar("si la clave gratuita no da para imágenes, explica que hay que activar la facturación", /facturación/.test(await p.textContent("#hoja-probador .copia-estado")));
   await p.click("#hoja-probador .hoja-accion");
 
   console.log("6. Probarme un look entero");

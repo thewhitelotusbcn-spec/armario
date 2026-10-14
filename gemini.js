@@ -30,10 +30,18 @@ export function pedir(ruta, token, cuerpo) {
 }
 
 export async function textoDelFallo(respuesta) {
-  const mensaje = await respuesta.json().then((r) => r.error?.message ?? "", () => "");
+  const cuerpo = await respuesta.json().then((r) => r ?? {}, () => ({}));
+  const mensaje = cuerpo.error?.message ?? "";
+  const todo = JSON.stringify(cuerpo);
   if (respuesta.status === 400 && /API key/i.test(mensaje)) return "La clave no vale. Comprueba que la has copiado entera.";
   if (respuesta.status === 403) return "La clave no tiene permiso para esto. Crea otra en Google AI Studio.";
-  if (respuesta.status === 429) return "Gemini dice que has llegado al límite de hoy, o que vas demasiado rápido. Espera un rato.";
+  if (respuesta.status === 429) {
+    // Un cupo de cero con una clave gratuita: ese modelo no entra en el plan gratuito de Gemini.
+    const gratuita = /free_tier|FreeTier/i.test(todo);
+    const sinCupo = /"quotaValue":\s*"0"|quota_value:\s*0\b|limit:\s*0\b/.test(todo);
+    if (gratuita && sinCupo) return "Tu clave es gratuita y el modelo de imágenes de Gemini no entra en el plan gratuito. Para usarlo hay que activar la facturación en Google AI Studio («Set up billing», en la página de la clave): se paga por imagen, unos 4 céntimos cada una.";
+    return "Gemini dice que has llegado al límite de hoy, o que vas demasiado rápido. Espera un rato.";
+  }
   if (respuesta.status === 503 || respuesta.status === 500) return "Gemini está saturado ahora mismo. Prueba otra vez en un minuto.";
   return `Gemini ha contestado con un error (${respuesta.status})${mensaje ? `: ${mensaje}` : ""}.`;
 }
