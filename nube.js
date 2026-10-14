@@ -15,7 +15,7 @@ const API = "https://api.github.com";
 const CADA = 15_000; // cada cuánto se mira si hay novedades (milisegundos)
 const ENTRE_SUBIDAS = 800; // pausa entre archivos subidos: GitHub no admite más de 80 por minuto
 const A_LA_VEZ = 4; // descargas a la vez
-const ORDEN = { ficha: 0, foto: 1, ajustes: 2, mi_foto: 2, original: 3 }; // lo primero, lo que antes se ve
+const ORDEN = { ficha: 0, foto: 1, ajustes: 2, mi_foto: 2, mi_cara: 2, original: 3 }; // lo primero, lo que antes se ve
 
 const hoja = $("hoja-nube");
 const boton = $("nube");
@@ -195,9 +195,11 @@ async function bajar(sha, etag) {
   if (cambiadasSet.has(almacen.RUTA_AJUSTES)) misTallas = (await descargar(almacen.RUTA_AJUSTES, sha, true)).mis_tallas ?? {};
   let miFoto = null;
   if (cambiadasSet.has(almacen.RUTA_MI_FOTO)) miFoto = await descargar(almacen.RUTA_MI_FOTO, sha, false);
+  let miCara = null;
+  if (cambiadasSet.has(almacen.RUTA_MI_CARA)) miCara = await descargar(almacen.RUTA_MI_CARA, sha, false);
 
   // Se guarda todo de una vez y se pone en la app abierta.
-  await almacen.guardarDeLaNube({ prendas: fichas, fotos: traidas.fotos, originales: traidas.originales, misTallas, miFoto });
+  await almacen.guardarDeLaNube({ prendas: fichas, fotos: traidas.fotos, originales: traidas.originales, misTallas, miFoto, miCara });
   const ids = aplicarDeLaNube({ prendas: fichas, fotos: traidas.fotos, misTallas });
   estado = { commit: sha, etag, arbol };
   await guardarEstado();
@@ -215,8 +217,8 @@ async function bajar(sha, etag) {
 async function contenidoDe(pendiente) {
   const texto = (objeto) => new TextEncoder().encode(`${JSON.stringify(objeto, null, 2)}\n`);
   if (pendiente.tipo === "ajustes") return texto({ mis_tallas: (await almacen.leer("ajustes", "mis_tallas")) ?? {} });
-  if (pendiente.tipo === "mi_foto") {
-    const foto = await almacen.leer("ajustes", "mi_foto");
+  if (pendiente.tipo === "mi_foto" || pendiente.tipo === "mi_cara") {
+    const foto = await almacen.leer("ajustes", pendiente.tipo);
     return foto ? new Uint8Array(await foto.arrayBuffer()) : null;
   }
   const prenda = await almacen.leer("prendas", pendiente.id);

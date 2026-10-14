@@ -1058,3 +1058,11 @@ html:has(.hoja[open]) { overflow: hidden; }
   margin: 0 0 14px !important;
   font-size: 13px !important;
 }
+
+/* Las dos fotos mías del probador, una al lado de la otra. */
+.probador-mia-una {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}

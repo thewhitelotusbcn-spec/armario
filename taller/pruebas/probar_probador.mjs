@@ -79,19 +79,26 @@ try {
   comprobar("con una clave mala avisa", true);
   await p.fill("#hoja-probador input[type=password]", "clave-buena");
   await p.click("#hoja-probador button.boton");
-  await p.waitForSelector("#hoja-probador h3:has-text('Tu foto')");
-  comprobar("con la buena pasa a pedir mi foto", true);
+  await p.waitForSelector("#hoja-probador h3:has-text('Tus fotos')");
+  comprobar("con la buena pasa a pedir mis fotos", true);
   const guardada = await p.evaluate(async () => (await import("./almacen.js")).leerNube("gemini"));
   comprobar("la clave y el modelo quedan guardados en el aparato", guardada?.token === "clave-buena" && guardada?.modelo === "gemini-2.5-flash-image", JSON.stringify(guardada));
 
-  console.log("3. Mi foto");
+  console.log("3. Mis fotos: selfie y cuerpo entero");
+  const selectores = p.locator("#hoja-probador ol li input[type=file]");
+  comprobar("pide dos fotos: selfie y cuerpo entero", (await selectores.count()) === 2 && /selfie/.test(await p.textContent("#hoja-probador ol li >> nth=0")) && /cuerpo entero/.test(await p.textContent("#hoja-probador ol li >> nth=1")));
   const bytes = await p.evaluate(async (imagen) => Array.from(new Uint8Array(await (await eval(imagen)("#c0a080", "image/jpeg", 1600, 2400)).arrayBuffer())), IMAGEN);
-  await p.setInputFiles("#hoja-probador input[type=file]", { name: "yo.jpg", mimeType: "image/jpeg", buffer: Buffer.from(bytes) });
-  await p.waitForSelector("#hoja-probador .probador-mia img");
+  await selectores.nth(1).setInputFiles({ name: "yo.jpg", mimeType: "image/jpeg", buffer: Buffer.from(bytes) });
+  await p.waitForSelector("#hoja-probador button:has-text('Seguir sin selfie')");
+  comprobar("con solo la de cuerpo entero deja seguir sin selfie, pero sigue pidiéndolo", (await p.locator("#hoja-probador ol li input[type=file]").count()) === 1 && /Lista/.test(await p.textContent("#hoja-probador ol li >> nth=1")));
   const mia = await p.evaluate(async () => { const f = await (await import("./almacen.js")).leer("ajustes", "mi_foto"); const m = await createImageBitmap(f); return { tipo: f.type, ancho: m.width, alto: m.height }; });
-  comprobar("mi foto se guarda reducida a 1280 de lado", mia.tipo === "image/jpeg" && mia.alto === 1280 && mia.ancho === 853, JSON.stringify(mia));
+  comprobar("mi foto de cuerpo se guarda reducida a 1280 de lado", mia.tipo === "image/jpeg" && mia.alto === 1280 && mia.ancho === 853, JSON.stringify(mia));
+  const cara = await p.evaluate(async (imagen) => Array.from(new Uint8Array(await (await eval(imagen)("#e0b090", "image/jpeg", 900, 900)).arrayBuffer())), IMAGEN);
+  await p.locator("#hoja-probador ol li input[type=file]").first().setInputFiles({ name: "cara.jpg", mimeType: "image/jpeg", buffer: Buffer.from(cara) });
+  await p.waitForSelector("#hoja-probador .probador-mia img");
+  comprobar("con las dos fotos pasa al probador y enseña las dos", (await p.locator("#hoja-probador .probador-mia img").count()) === 2);
   const pendientes = await p.evaluate(async () => (await import("./almacen.js")).leerPendientes());
-  comprobar("y queda pendiente de subir a la nube", pendientes.some((x) => x.ruta === "mi-foto.jpg"));
+  comprobar("las dos quedan pendientes de subir a la nube", pendientes.some((x) => x.ruta === "mi-foto.jpg") && pendientes.some((x) => x.ruta === "mi-cara.jpg"), pendientes.map((x) => x.ruta).join(","));
 
   console.log("4. Probarme una prenda");
   comprobar("la hoja enseña la prenda a probar", (await p.locator("#hoja-probador .probador-prendas .foto").count()) === 1 && (await p.textContent("#hoja-probador h3")) === "Americana azul marino");
@@ -103,7 +110,7 @@ try {
   comprobar("enseña la imagen que devuelve Gemini", resultado.ancho === 2 && resultado.tipo === "image/png", JSON.stringify(resultado));
   const peticion = gemini.peticiones[0];
   const partes = peticion.contents[0].parts;
-  comprobar("a Gemini le llegan el texto, mi foto y la foto de la prenda", partes.length === 3 && partes[1].inline_data.mime_type === "image/jpeg" && partes[2].inline_data.mime_type === "image/webp" && /Americana azul marino/.test(partes[0].text), `${partes.length} partes`);
+  comprobar("a Gemini le llegan el texto, mi selfie, mi cuerpo y la foto de la prenda", partes.length === 4 && partes[1].inline_data.mime_type === "image/jpeg" && partes[2].inline_data.mime_type === "image/jpeg" && partes[3].inline_data.mime_type === "image/webp" && /Americana azul marino/.test(partes[0].text) && /Image 1 is a close-up of my face/.test(partes[0].text) && /studio/.test(partes[0].text), `${partes.length} partes`);
   comprobar("y se le pide una imagen", JSON.stringify(peticion.generationConfig.responseModalities).includes("IMAGE"));
   const guardar = p.locator("#hoja-probador a.boton");
   comprobar("hay botón para guardar la imagen con nombre", (await guardar.getAttribute("download")) === "probador-p001.png");
@@ -128,7 +135,7 @@ try {
   await p.click("#hoja-probador button.boton:has-text('Probármelo')");
   await p.waitForSelector("#hoja-probador .probador-resultado img", { timeout: 20000 });
   const ultima = gemini.peticiones.at(-1).contents[0].parts;
-  comprobar("a Gemini le llegan todas las fotos del look", ultima.length === enLook + 2, `${ultima.length} partes`);
+  comprobar("a Gemini le llegan todas las fotos del look", ultima.length === enLook + 3, `${ultima.length} partes`);
   await p.click("#hoja-probador .hoja-accion");
 
   console.log("7. Al reabrir la app todo sigue");
@@ -136,7 +143,7 @@ try {
   await p.waitForSelector("#vista-prenda:not([hidden]) h1");
   await p.click("#barra-prenda button:has-text('Probar')");
   await p.waitForSelector("#hoja-probador button.boton:has-text('Probármelo')");
-  comprobar("la clave y la foto se recuerdan", true);
+  comprobar("la clave y las fotos se recuerdan", (await p.locator("#hoja-probador .probador-mia img").count()) === 2);
   await p.click("#hoja-probador .probador-enlaces button");
   await p.waitForSelector("#hoja-probador input[type=password]");
   comprobar("se puede cambiar la clave", true);

@@ -63,7 +63,8 @@ export const guardar = (cajon, valor, clave) =>
 // Las rutas de una prenda en la nube: su ficha, su foto de tienda y su imagen original.
 export const rutaDeFicha = (id) => `prendas/${id}.json`;
 export const RUTA_AJUSTES = "ajustes.json";
-export const RUTA_MI_FOTO = "mi-foto.jpg"; // mi foto para el probador
+export const RUTA_MI_FOTO = "mi-foto.jpg"; // mi foto de cuerpo entero, para el probador
+export const RUTA_MI_CARA = "mi-cara.jpg"; // mi selfie, para que el probador me saque la cara
 
 function apuntar(tanda, pendientes) {
   const cajon = tanda.objectStore("pendientes");
@@ -91,6 +92,7 @@ export async function apuntarTodo() {
     const originales = tanda.objectStore("originales").getAllKeys();
     const tallas = tanda.objectStore("ajustes").get("mis_tallas");
     const miFoto = tanda.objectStore("ajustes").get("mi_foto");
+    const miCara = tanda.objectStore("ajustes").get("mi_cara");
     const prendas = tanda.objectStore("prendas").getAll();
     // Las peticiones se atienden por orden: al llegar la última ya están las otras.
     prendas.onsuccess = () => {
@@ -102,6 +104,7 @@ export async function apuntarTodo() {
       // Las tallas solo si este aparato las tiene: un aparato vacío no pisa las de la nube.
       if (tallas.result) apuntar(tanda, [{ ruta: RUTA_AJUSTES, tipo: "ajustes" }]);
       if (miFoto.result) apuntar(tanda, [{ ruta: RUTA_MI_FOTO, tipo: "mi_foto" }]);
+      if (miCara.result) apuntar(tanda, [{ ruta: RUTA_MI_CARA, tipo: "mi_cara" }]);
     };
   });
   avisarPendientes();
@@ -127,12 +130,14 @@ export async function guardarFoto(prenda, foto, original) {
   avisarPendientes();
 }
 
-// Guarda mi foto para el probador (o la quita, con null).
-export async function guardarMiFoto(foto) {
+// Guarda una foto mía para el probador: "cuerpo" (entero) o "cara" (selfie). Con null la quita.
+export async function guardarMiFoto(foto, tipo = "cuerpo") {
+  const clave = tipo === "cara" ? "mi_cara" : "mi_foto";
+  const pendiente = tipo === "cara" ? { ruta: RUTA_MI_CARA, tipo: "mi_cara" } : { ruta: RUTA_MI_FOTO, tipo: "mi_foto" };
   await operar(["ajustes", "pendientes"], "readwrite", (tanda) => {
-    if (foto) tanda.objectStore("ajustes").put(foto, "mi_foto");
-    else tanda.objectStore("ajustes").delete("mi_foto");
-    if (foto) apuntar(tanda, [{ ruta: RUTA_MI_FOTO, tipo: "mi_foto" }]);
+    if (foto) tanda.objectStore("ajustes").put(foto, clave);
+    else tanda.objectStore("ajustes").delete(clave);
+    if (foto) apuntar(tanda, [pendiente]);
   });
   if (foto) avisarPendientes();
 }
@@ -155,13 +160,14 @@ export async function reemplazarTodo({ prendas, fotos, originales, ajustes }) {
 }
 
 // Guarda lo que llega de la nube, sin apuntarlo como pendiente: ya está allí.
-export function guardarDeLaNube({ prendas = [], fotos = new Map(), originales = new Map(), misTallas = null, miFoto = null }) {
+export function guardarDeLaNube({ prendas = [], fotos = new Map(), originales = new Map(), misTallas = null, miFoto = null, miCara = null }) {
   return operar(CAJONES, "readwrite", (tanda) => {
     for (const prenda of prendas) tanda.objectStore("prendas").put(prenda);
     for (const [id, foto] of fotos) tanda.objectStore("fotos").put(foto, id);
     for (const [id, original] of originales) tanda.objectStore("originales").put(original, id);
     if (misTallas) tanda.objectStore("ajustes").put(misTallas, "mis_tallas");
     if (miFoto) tanda.objectStore("ajustes").put(miFoto, "mi_foto");
+    if (miCara) tanda.objectStore("ajustes").put(miCara, "mi_cara");
   });
 }
 

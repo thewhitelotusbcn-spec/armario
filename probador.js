@@ -17,21 +17,30 @@ class FalloDelProbador extends Error {}
 // ---------- Hablar con Gemini ----------
 
 // Lo que se le pide a Gemini. En inglés, que es con lo que mejor trabajan los modelos de imágenes.
-function encargo(prendas) {
-  const lista = prendas.map((p, i) => `${i + 1}) ${p.nombre} (${p.categoria})`).join(", ");
+// "conCara" dice si va primero un selfie (para la cara) y después la foto de cuerpo entero.
+function encargo(prendas, conCara) {
+  const primeras = conCara ? 2 : 1;
+  const lista = prendas.map((p, i) => `${primeras + i + 1}) ${p.nombre} (${p.categoria})`).join(", ");
+  const yo = conCara
+    ? "Image 1 is a close-up of my face: use it for my exact facial identity (face shape, features, skin tone, hair, beard). " +
+      "Image 2 is my full body: use it for my build, proportions and height. "
+    : "Image 1 is me, full body: use it for my face, hair, skin tone and build. ";
   return (
-    `Virtual try-on. The first image is me. The following ${prendas.length === 1 ? "image is a garment" : "images are garments"} ` +
-    `from a store catalog, in this order: ${lista}. Dress me in exactly ${prendas.length === 1 ? "this garment" : "these garments"}. ` +
-    "Keep my face, hair, body, pose, skin, the framing and the background exactly as they are; change only the clothing. " +
-    "Reproduce each garment faithfully: its real color, fabric texture, cut, length and fit. " +
-    "Where no garment is given for a part of the body (for example trousers or shoes), keep what I am already wearing. " +
-    "Photorealistic, with the same lighting and camera as my photo. Output a single image."
+    `Virtual try-on for a fashion catalog. ${yo}` +
+    `The remaining ${prendas.length === 1 ? "image is a garment" : "images are garments"} from a store catalog, in this order: ${lista}. ` +
+    `Generate a new photorealistic full-body studio photograph of me wearing exactly ${prendas.length === 1 ? "this garment" : "these garments"}: ` +
+    "my same recognisable face, hair and body, standing naturally facing the camera, soft even studio light, plain light grey background, " +
+    "like a fashion e-commerce photo. Reproduce each garment faithfully: its real color, fabric texture, cut, length and fit. " +
+    "Where no garment is given for a part of the body (for example trousers or shoes), add a plain neutral piece that matches. " +
+    "Output a single image in portrait orientation."
   );
 }
 
 // Pide a Gemini la imagen mía con las prendas puestas. Devuelve un Blob.
-async function vestirme(clave, miFoto, prendas) {
-  const partes = [{ text: encargo(prendas) }, await parteDeImagen(miFoto, "image/jpeg")];
+async function vestirme(clave, fotos, prendas) {
+  const partes = [{ text: encargo(prendas, Boolean(fotos.cara)) }];
+  if (fotos.cara) partes.push(await parteDeImagen(fotos.cara, "image/jpeg"));
+  partes.push(await parteDeImagen(fotos.cuerpo, "image/jpeg"));
   for (const prenda of prendas) partes.push(await parteDeImagen(await fotoDeTienda(prenda), "image/webp"));
   let respuesta;
   try {
@@ -171,33 +180,49 @@ function pintarClave(cuerpo, prendas) {
   cuerpo.append(bloque, pasos, formulario);
 }
 
-async function elegirMiFoto(archivo, estado, prendas) {
+async function elegirMiFoto(archivo, tipo, estado, prendas, sinSelfie = false) {
   estado.classList.remove("fallo");
   estado.textContent = "Preparando la foto…";
   try {
-    await almacen.guardarMiFoto(await reducir(archivo));
-    pintar(prendas);
+    await almacen.guardarMiFoto(await reducir(archivo), tipo);
+    pintar(prendas, sinSelfie);
   } catch (fallo) {
     estado.textContent = fallo instanceof FalloDelProbador || fallo instanceof FalloDeGemini ? fallo.message : "No se ha podido guardar la foto.";
     estado.classList.add("fallo");
   }
 }
 
-// Con clave pero sin foto mía: elegirla.
-function pintarMiFoto(cuerpo, prendas) {
-  const bloque = crear("div", "movil-aviso");
+// Con clave pero sin fotos mías: pedir el selfie y la de cuerpo entero.
+function pintarMisFotos(cuerpo, prendas, fotos) {
   const estado = crearEstado();
+  const bloque = crear("div", "movil-aviso");
   bloque.append(
-    crear("h3", null, "Tu foto"),
-    crear("p", null, "Elige una foto tuya de cuerpo entero, de frente, con buena luz y ropa sencilla. Se guarda en este aparato y, con la nube, pasa a tus otros aparatos."),
-    crearSelector("Elegir mi foto", "boton", (archivo) => elegirMiFoto(archivo, estado, prendas)),
-    estado,
+    crear("h3", null, "Tus fotos"),
+    crear("p", null, "Para que el modelo seas tú de verdad hacen falta dos fotos: un selfie de cara, con buena luz, y una de cuerpo entero, de frente. Se guardan en este aparato y, con la nube, pasan a tus otros aparatos."),
   );
-  cuerpo.append(bloque);
+  const pasos = crear("ol", "movil-pasos nube-pasos");
+  for (const [tipo, texto, boton] of [
+    ["cara", "Un selfie de cara, de frente y sin gafas de sol.", "Elegir selfie"],
+    ["cuerpo", "Una foto de cuerpo entero, de pie, de frente, con ropa sencilla.", "Elegir cuerpo entero"],
+  ]) {
+    const li = crear("li");
+    li.append(crear("span", null, texto));
+    if (fotos[tipo]) {
+      const hecha = crear("span", "nube-enlace", "Lista ✓");
+      li.append(hecha);
+    } else {
+      li.append(crearSelector(boton, "nube-enlace", (archivo) => elegirMiFoto(archivo, tipo, estado, prendas)));
+    }
+    pasos.append(li);
+  }
+  cuerpo.append(bloque, pasos, estado);
+  if (fotos.cuerpo && !fotos.cara) {
+    cuerpo.append(crearAccion("Seguir sin selfie", "movil-quitar", () => pintar(prendas, true)));
+  }
 }
 
 // Con todo listo: las prendas, el botón y el resultado.
-function pintarProbador(cuerpo, prendas, clave, miFoto) {
+function pintarProbador(cuerpo, prendas, clave, fotos) {
   const bloque = crear("div", "movil-aviso");
   const titulo = prendas.length === 1 ? prendas[0].nombre : `Look de ${prendas.length} prendas`;
   const fila = crear("div", "probador-prendas");
@@ -209,13 +234,23 @@ function pintarProbador(cuerpo, prendas, clave, miFoto) {
   }
   const nombres = crear("p", null, prendas.map((p) => p.nombre).join(" · "));
 
-  const direccionMia = URL.createObjectURL(miFoto);
-  const mia = new Image();
-  mia.alt = "Mi foto";
-  mia.src = direccionMia;
-  const cambiarFoto = crearSelector("Cambiar mi foto", "movil-quitar", (archivo) => elegirMiFoto(archivo, estado, prendas));
+  // Mis fotos, pequeñas, con el botón para cambiar cada una.
+  const direcciones = [];
   const miBloque = crear("div", "probador-mia");
-  miBloque.append(mia, cambiarFoto);
+  for (const [tipo, texto] of [["cara", "Cambiar selfie"], ["cuerpo", "Cambiar cuerpo"]]) {
+    const columna = crear("div", "probador-mia-una");
+    if (fotos[tipo]) {
+      const direccion = URL.createObjectURL(fotos[tipo]);
+      direcciones.push(direccion);
+      const mia = new Image();
+      mia.alt = tipo === "cara" ? "Mi selfie" : "Mi foto de cuerpo entero";
+      mia.src = direccion;
+      columna.append(mia);
+    }
+    columna.append(crearSelector(fotos[tipo] ? texto : "Añadir selfie", "movil-quitar", (archivo) => elegirMiFoto(archivo, tipo, estado, prendas, true)));
+    miBloque.append(columna);
+  }
+  const cambiarFoto = miBloque;
 
   const resultado = crear("div", "probador-resultado");
   const estado = crearEstado();
@@ -231,7 +266,7 @@ function pintarProbador(cuerpo, prendas, clave, miFoto) {
     resultado.classList.add("trabajando");
     acciones.replaceChildren();
     try {
-      const imagen = await vestirme(clave, miFoto, prendas);
+      const imagen = await vestirme(clave, fotos, prendas);
       if (direccionResultado) URL.revokeObjectURL(direccionResultado);
       direccionResultado = URL.createObjectURL(imagen);
       const foto = new Image();
@@ -267,23 +302,25 @@ function pintarProbador(cuerpo, prendas, clave, miFoto) {
   hoja.addEventListener(
     "close",
     () => {
-      URL.revokeObjectURL(direccionMia);
+      for (const direccion of direcciones) URL.revokeObjectURL(direccion);
       if (direccionResultado) URL.revokeObjectURL(direccionResultado);
     },
     { once: true },
   );
 }
 
-async function pintar(prendas) {
-  const [clave, miFoto] = await Promise.all([leerClave(), almacen.leer("ajustes", "mi_foto")]);
+// "sinSelfie": seguir aunque falte el selfie (solo con la foto de cuerpo entero).
+async function pintar(prendas, sinSelfie = false) {
+  const [clave, cuerpoEntero, cara] = await Promise.all([leerClave(), almacen.leer("ajustes", "mi_foto"), almacen.leer("ajustes", "mi_cara")]);
+  const fotos = { cuerpo: cuerpoEntero ?? null, cara: cara ?? null };
   const titulo = crear("h2", null, "Probador");
   titulo.id = "probador-titulo";
   const cabecera = crear("header", "hoja-cabecera");
   cabecera.append(crear("span"), titulo, crearAccion("Hecho", "hoja-accion principal", () => hoja.close()));
   const cuerpo = crear("div", "hoja-cuerpo");
   if (!clave) pintarClave(cuerpo, prendas);
-  else if (!miFoto) pintarMiFoto(cuerpo, prendas);
-  else pintarProbador(cuerpo, prendas, clave, miFoto);
+  else if (!fotos.cuerpo || (!fotos.cara && !sinSelfie)) pintarMisFotos(cuerpo, prendas, fotos);
+  else pintarProbador(cuerpo, prendas, clave, fotos);
   const contenido = crear("div", "hoja-contenido");
   contenido.append(cabecera, cuerpo);
   hoja.replaceChildren(contenido);

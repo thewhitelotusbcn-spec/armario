@@ -244,6 +244,15 @@ try {
   const fichaB = await B.pagina.evaluate(async () => (await import("./base.js")).armario.prendas.find((p) => p.id === "p002").foto_version);
   comprobar("la ficha de la foto cambiada también llega", fichaB === 123, String(fichaB));
 
+  // Mis fotos del probador (selfie y cuerpo entero) también viajan.
+  await A.pagina.evaluate(async (imagen) => {
+    const a = await import("./almacen.js"); const hacer = eval(imagen);
+    await a.guardarMiFoto(await hacer("#c0a080", "image/jpeg"), "cuerpo");
+    await a.guardarMiFoto(await hacer("#e0b090", "image/jpeg"), "cara");
+  }, IMAGEN);
+  const misFotosEnB = await esperarA(async () => B.pagina.evaluate(async () => { const a = await import("./almacen.js"); const [c, s] = await Promise.all([a.leer("ajustes", "mi_foto"), a.leer("ajustes", "mi_cara")]); return c && s ? { cuerpo: c.size, cara: s.size } : null; }));
+  comprobar("el selfie y la foto de cuerpo entero de A llegan a B", Boolean(misFotosEnB) && nube.archivos.has("mi-foto.jpg") && nube.archivos.has("mi-cara.jpg"), JSON.stringify(misFotosEnB));
+
   console.log("6. Sin conexión: se apunta y se sube al volver");
   await B.pagina.goto(BASE + "#/prenda/p003");
   await B.pagina.waitForSelector("#vista-prenda:not([hidden]) h1");
