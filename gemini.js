@@ -4,7 +4,7 @@
 // pierda al traer una copia.
 
 import * as almacen from "./almacen.js";
-import { CATEGORIAS, COLORES, DIBUJOS, TEJIDOS } from "./base.js";
+import { CATEGORIAS, COLORES, DIBUJOS, REGISTROS, TEJIDOS } from "./base.js";
 
 const API = "https://generativelanguage.googleapis.com/v1beta";
 // Los modelos que hacen imágenes, por orden de preferencia: se usa el primero que la clave abra.
@@ -77,7 +77,10 @@ const ENCARGO_FICHA =
   "nombre: a short natural Spanish name as a man would say it, like 'Jersey de lana gris' or 'Camisa Oxford azul' (max 40 characters, no brand). " +
   `categoria: one of ${JSON.stringify(CATEGORIAS)}. tejido: the most likely fabric, one of ${JSON.stringify(TEJIDOS)}. ` +
   `color_principal: one of ${JSON.stringify(COLORES_FICHA)}. color_secundario: a clear second color if there is one, else "ninguno", one of ${JSON.stringify(["ninguno", ...COLORES_FICHA])}. ` +
-  `dibujo: one of ${JSON.stringify(DIBUJOS)}. modelo: true if a person is wearing the garment in the photo.`;
+  `dibujo: one of ${JSON.stringify(DIBUJOS)}. modelo: true if a person is wearing the garment in the photo. ` +
+  "registro: 'sastre' for tailoring and dress pieces (blazers, dress trousers, dress shoes), 'relajado' for casual and streetwear " +
+  "(t-shirts, sweatshirts, sneakers, jeans), 'puente' for pieces that work with both (oxford shirts, chinos, loafers, plain knitwear). " +
+  "formalidad: 1 sport or home, 2 casual, 3 smart casual, 4 dressed up, 5 formal.";
 
 const ESQUEMA_FICHA = {
   type: "OBJECT",
@@ -89,8 +92,10 @@ const ESQUEMA_FICHA = {
     color_secundario: { type: "STRING", enum: ["ninguno", ...COLORES_FICHA] },
     dibujo: { type: "STRING", enum: DIBUJOS },
     modelo: { type: "BOOLEAN" },
+    registro: { type: "STRING", enum: REGISTROS },
+    formalidad: { type: "INTEGER" },
   },
-  required: ["nombre", "categoria", "tejido", "color_principal", "color_secundario", "dibujo", "modelo"],
+  required: ["nombre", "categoria", "tejido", "color_principal", "color_secundario", "dibujo", "modelo", "registro", "formalidad"],
 };
 
 // Pide a Gemini que diga qué prenda es la de la foto. Devuelve la propuesta
@@ -137,5 +142,7 @@ export async function describirPrenda(clave, foto) {
     color_secundario: valida(propuesta.color_secundario, ["ninguno", ...COLORES_FICHA]),
     dibujo: valida(propuesta.dibujo, DIBUJOS),
     modelo: propuesta.modelo === true,
+    registro: valida(propuesta.registro, REGISTROS),
+    formalidad: Number.isInteger(propuesta.formalidad) && propuesta.formalidad >= 1 && propuesta.formalidad <= 5 ? propuesta.formalidad : null,
   };
 }

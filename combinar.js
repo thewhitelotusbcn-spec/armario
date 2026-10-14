@@ -152,15 +152,19 @@ function motivo(piezas) {
 }
 
 // Todos los conjuntos posibles que incluyen la prenda, cada uno con su nota.
+// Un conjunto es la ropa (de abajo, de arriba, punto y encima); el calzado se elige después.
+// Si la prenda es calzado, se montan conjuntos con todo el armario y se quedan solo los
+// que ese calzado acompaña bien.
 function conjuntosCon(prenda, todas) {
   const mio = PAPEL[prenda.categoria];
-  // Los looks se montan alrededor de una prenda de ropa; el calzado se añade después
-  // y los accesorios aún no entran.
-  if (!["abajo", "arriba", "punto", "encima"].includes(mio)) return [];
+  if (!["abajo", "arriba", "punto", "encima", "pies"].includes(mio)) return []; // los accesorios aún no entran
+  const esCalzado = mio === "pies";
   const otras = todas.filter((p) => p.id !== prenda.id);
   const delPapel = (papel) => otras.filter((p) => PAPEL[p.categoria] === papel);
   // La prenda ocupa su papel; en los demás se prueba cada candidata y también dejarlo vacío.
   const opciones = (papel) => (papel === mio ? [prenda] : [...delPapel(papel), null]);
+  // Con el calzado como prenda, cada conjunto tiene que irle bien pieza a pieza.
+  const leVa = (piezas) => !esCalzado || piezas.every((pieza) => afinidad(prenda, pieza.prenda) >= MINIMO);
 
   const conjuntos = [];
   for (const abajo of mio === "abajo" ? [prenda] : delPapel("abajo")) {
@@ -168,6 +172,7 @@ function conjuntosCon(prenda, todas) {
       for (const punto of opciones("punto")) {
         for (const encima of opciones("encima")) {
           if (!arriba && !punto) continue;
+          if (!abajo) continue;
           const piezas = [
             { prenda: encima, papel: "encima" },
             { prenda: punto, papel: "punto" },
@@ -178,7 +183,7 @@ function conjuntosCon(prenda, todas) {
           const temporadas = TEMPORADAS.filter(
             (t) => piezas.every((pieza) => pieza.prenda.temporada.includes(t)) && abrigoValido(t, punto, encima),
           );
-          if (temporadas.length === 0) continue;
+          if (temporadas.length === 0 || !leVa(piezas)) continue;
 
           const notas = [];
           for (let i = 0; i < piezas.length; i++) {
@@ -196,14 +201,22 @@ function conjuntosCon(prenda, todas) {
   return conjuntos.sort((x, y) => y.nota - x.nota);
 }
 
+// La formalidad media de las piezas de un conjunto.
+const formalidadDe = (piezas) => piezas.reduce((suma, pieza) => suma + pieza.prenda.formalidad, 0) / piezas.length;
+
 // El calzado que mejor acompaña a un conjunto en esa época, o null si ninguno encaja con todo.
-function calzadoPara(conjunto, temporada, todas) {
+// "fijo" es un calzado que ya viene impuesto (cuando el look se monta a partir de él).
+function calzadoPara(conjunto, temporada, todas, fijo = null) {
+  if (fijo) return fijo;
   let mejor = null;
+  const formalidad = formalidadDe(conjunto.piezas);
   for (const zapato of todas) {
     if (PAPEL[zapato.categoria] !== "pies" || !zapato.temporada.includes(temporada)) continue;
     const notas = conjunto.piezas.map((pieza) => afinidad(zapato, pieza.prenda));
     if (Math.min(...notas) < MINIMO) continue;
-    const media = notas.reduce((suma, n) => suma + n, 0) / notas.length;
+    // A igual armonía, el calzado que va con el tono del look: ni zapato de vestir con
+    // camiseta ni zapatilla con traje.
+    const media = notas.reduce((suma, n) => suma + n, 0) / notas.length - Math.abs(zapato.formalidad - formalidad) * 0.12;
     if (!mejor || media > mejor.media) mejor = { zapato, media };
   }
   return mejor?.zapato ?? null;
@@ -231,12 +244,11 @@ export function looksCon(prenda, todas, maximo = 3) {
       const iguales = comunes(otro, conjunto, prenda);
       return iguales <= repetidas && iguales < otrasDe(conjunto, prenda).length;
     });
+  const esCalzado = PAPEL[prenda.categoria] === "pies";
   const anadir = (conjunto, temporada) => {
     if (!conjunto) return;
-    const formalidad = Math.round(
-      conjunto.piezas.reduce((suma, pieza) => suma + pieza.prenda.formalidad, 0) / conjunto.piezas.length,
-    );
-    const zapato = calzadoPara(conjunto, temporada, todas);
+    const formalidad = Math.round(formalidadDe(conjunto.piezas));
+    const zapato = calzadoPara(conjunto, temporada, todas, esCalzado ? prenda : null);
     elegidos.push({
       // El conjunto se completa con calzado, si hay alguno que le vaya.
       piezas: zapato ? [...conjunto.piezas, { prenda: zapato, papel: "pies" }] : conjunto.piezas,

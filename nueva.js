@@ -290,13 +290,16 @@ function abrir() {
       ocupada: () => ocupada,
       datos() {
         const [, , temporada, registro, formalidad, tejido] = HABITUAL[categoria.value] ?? [];
+        const nombreFinal = nombre.value.trim() || (categoria.value ? nombreHabitual(categoria.value, color) : "");
+        // Sin Gemini, el nombre ayuda a situar la prenda: unas zapatillas no son unos zapatos de vestir.
+        const deportiva = /zapatill|deportiv|sneaker|chándal|chandal/i.test(nombreFinal);
         const datos = {
-          nombre: nombre.value.trim() || (categoria.value ? nombreHabitual(categoria.value, color) : ""),
+          nombre: nombreFinal,
           categoria: categoria.value,
           color_principal: color,
           tejido: propuesta?.tejido ?? tejido,
-          formalidad,
-          registro,
+          formalidad: propuesta?.formalidad ?? (deportiva ? 2 : formalidad),
+          registro: propuesta?.registro ?? (deportiva ? "relajado" : registro),
           temporada,
         };
         if (propuesta?.color_secundario) datos.color_secundario = propuesta.color_secundario;

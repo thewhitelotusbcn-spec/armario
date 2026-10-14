@@ -52,7 +52,7 @@ p.on("pageerror", (e) => console.log("  error en página:", e.message));
 const URL_APP = `http://localhost:${PUERTO}/`;
 const IMAGEN = `(color, tipo, w, h) => new Promise((r) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d"); x.fillStyle = color; x.fillRect(0, 0, w, h); c.toBlob(r, tipo); })`;
 const fotoJpeg = async (color) => Buffer.from(await p.evaluate(async ({ imagen, color }) => Array.from(new Uint8Array(await (await eval(imagen)(color, "image/jpeg", 300, 400)).arrayBuffer())), { imagen: IMAGEN, color }));
-const prendasDe = () => p.evaluate(async () => (await import("./base.js")).armario.prendas.map((x) => ({ id: x.id, nombre: x.nombre, categoria: x.categoria, tejido: x.tejido, color: x.color_principal, dibujo: x.dibujo, secundario: x.color_secundario })));
+const prendasDe = () => p.evaluate(async () => (await import("./base.js")).armario.prendas.map((x) => ({ id: x.id, nombre: x.nombre, categoria: x.categoria, tejido: x.tejido, color: x.color_principal, dibujo: x.dibujo, secundario: x.color_secundario, registro: x.registro, formalidad: x.formalidad })));
 const filas = () => p.evaluate(() => [...document.querySelectorAll("#hoja-nueva .nuevas .campos")].map((g) => ({ nombre: g.querySelector("input:not([type])").value, categoria: g.querySelector("select").value, estado: g.querySelector(".campo-ayuda").textContent })));
 async function anadirFotos(colores) {
   await p.click("#anadir");
@@ -87,13 +87,13 @@ try {
   await p.goto(URL_APP);
   await p.waitForSelector("[data-prenda]");
   gemini.respuestas.push(
-    { nombre: "Americana de lana azul marino", categoria: "americanas", tejido: "lana", color_principal: "azul marino", color_secundario: "ninguno", dibujo: "espiga", modelo: false },
-    { nombre: "Camisa Oxford a rayas", categoria: "camisas", tejido: "algodón", color_principal: "blanco", color_secundario: "azul", dibujo: "rayas", modelo: false },
+    { nombre: "Americana de lana azul marino", categoria: "americanas", tejido: "lana", color_principal: "azul marino", color_secundario: "ninguno", dibujo: "espiga", modelo: false, registro: "sastre", formalidad: 4 },
+    { nombre: "Zapatillas blancas", categoria: "calzado", tejido: "piel", color_principal: "blanco", color_secundario: "ninguno", dibujo: "liso", modelo: false, registro: "relajado", formalidad: 2 },
   );
   await anadirFotos(["#1f2a44", "#e8eef5"]);
   await p.waitForFunction(() => { const e = [...document.querySelectorAll("#hoja-nueva .nuevas .campo-ayuda")]; return e.length === 2 && e.every((x) => /Propuesta de Gemini/.test(x.textContent)); }, null, { timeout: 20000 });
   f = await filas();
-  comprobar("las dos fichas llegan con nombre y categoría de Gemini", f[0].nombre === "Americana de lana azul marino" && f[0].categoria === "americanas" && f[1].nombre === "Camisa Oxford a rayas" && f[1].categoria === "camisas", JSON.stringify(f));
+  comprobar("las dos fichas llegan con nombre y categoría de Gemini", f[0].nombre === "Americana de lana azul marino" && f[0].categoria === "americanas" && f[1].nombre === "Zapatillas blancas" && f[1].categoria === "calzado", JSON.stringify(f));
   comprobar("el botón Añadir ya está encendido", !(await p.isDisabled("#hoja-nueva .hoja-accion.principal")));
   const peticion = gemini.peticiones[0];
   comprobar("a Gemini le llega la foto recortada y se le pide JSON con las palabras de las fichas", peticion.contents[0].parts[1].inline_data.mime_type === "image/jpeg" && peticion.generationConfig.responseMimeType === "application/json" && /jerséis/.test(peticion.contents[0].parts[0].text) && peticion.generationConfig.responseSchema.properties.categoria.enum.includes("vaqueros"));
@@ -105,7 +105,7 @@ try {
   await p.waitForSelector("#hoja-nueva:not([open])");
   prendas = await prendasDe();
   const [am, cam] = prendas.slice(-2);
-  comprobar("se añaden con tejido, color, dibujo y color secundario de Gemini", am.tejido === "lana" && am.color === "azul marino" && am.dibujo === "espiga" && cam.secundario === "azul" && cam.dibujo === "rayas", JSON.stringify([am, cam]));
+  comprobar("se añaden con tejido, color, dibujo, registro y formalidad de Gemini", am.tejido === "lana" && am.color === "azul marino" && am.dibujo === "espiga" && am.registro === "sastre" && am.formalidad === 4 && cam.registro === "relajado" && cam.formalidad === 2, JSON.stringify([am, cam]));
   comprobar("el nombre escrito a mano gana a la propuesta", cam.nombre === "Mi camisa favorita", cam.nombre);
 
   console.log("3. Si Gemini falla, se sigue como sin clave");
@@ -117,9 +117,11 @@ try {
   await p.selectOption("#hoja-nueva .nuevas select", "calzado");
   f = await filas();
   comprobar("y el nombre sale por el color medido", f[0].nombre === "Calzado gris", f[0].nombre);
+  await p.fill("#hoja-nueva .nuevas input:not([type])", "Zapatillas deportivas grises");
   await p.click("#hoja-nueva .hoja-accion.principal");
   await p.waitForSelector("#hoja-nueva:not([open])");
-  comprobar("la prenda se añade igualmente", (await prendasDe()).length === 5);
+  const ultima = (await prendasDe()).at(-1);
+  comprobar("la prenda se añade igualmente y, por el nombre, unas zapatillas quedan como relajado 2", (await prendasDe()).length === 5 && ultima.registro === "relajado" && ultima.formalidad === 2, JSON.stringify(ultima));
 } catch (fallo) {
   console.log("ERROR en la prueba:", fallo);
   mal++;
