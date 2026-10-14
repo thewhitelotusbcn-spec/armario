@@ -114,9 +114,26 @@ export function iniciarAparato() {
   // programa, la app se vuelve a abrir sola con ella: no hace falta cerrarla dos veces.
   if ("serviceWorker" in navigator) {
     const habiaPrograma = Boolean(navigator.serviceWorker.controller);
+    const abierta = Date.now();
+    const sePuedeRecargar = () => !document.querySelector("dialog[open]");
+    // Programa nuevo instalado: se recarga para usarlo (si no se está en medio de algo).
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (habiaPrograma && !document.querySelector("dialog[open]")) location.reload();
+      if (habiaPrograma && sePuedeRecargar()) location.reload();
     });
+    // El actualizador deja una marca en la caché cuando guarda programa nuevo por detrás.
+    // En los primeros segundos se mira unas veces: si está, se recarga para usarlo ya.
+    const hayProgramaNuevo = async () => {
+      try {
+        const cache = await caches.open("armario-programa-v1");
+        if (!(await cache.match("programa-nuevo"))) return false;
+        if (!sePuedeRecargar()) return false; // se queda la marca: se recargará la próxima vez
+        await cache.delete("programa-nuevo");
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    for (const ms of [1500, 4000, 8000]) setTimeout(async () => { if (await hayProgramaNuevo()) location.reload(); }, ms);
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 

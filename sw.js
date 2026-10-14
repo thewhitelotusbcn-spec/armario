@@ -68,8 +68,27 @@ function aislar(respuesta) {
   return new Response(respuesta.body, { status: respuesta.status, statusText: respuesta.statusText, headers: cabeceras });
 }
 
+// Dos respuestas son la misma versión si el servidor las marca igual (ETag o fecha).
+function mismaVersion(guardada, nueva) {
+  for (const cabecera of ["etag", "last-modified", "content-length"]) {
+    const a = guardada.headers.get(cabecera);
+    const b = nueva.headers.get(cabecera);
+    if (a && b) return a === b;
+  }
+  return true; // sin marcas no se puede saber: mejor no molestar
+}
+
+// Deja una marca en la caché: hay programa nuevo guardado. La app la mira al abrirse y,
+// si está, se recarga para usarlo ya. (La app la busca con este mismo nombre.)
+const MARCA = "programa-nuevo";
+async function marcarProgramaNuevo() {
+  const cache = await caches.open(CACHE);
+  await cache.put(new Request(self.registration.scope + MARCA), new Response("1"));
+}
+
 // Se responde con lo guardado, que es inmediato, y a la vez se pide la versión nueva
-// por internet para la próxima vez. Así las mejoras llegan solas.
+// por internet para la próxima vez. Si ha cambiado algo, se deja la marca para que la app
+// se recargue nada más abrirse: así las mejoras llegan a la primera.
 self.addEventListener("fetch", (evento) => {
   const peticion = evento.request;
   // Solo lo que es de la app. Lo demás (como preguntar si hay un ordenador detrás) va directo.
@@ -80,15 +99,16 @@ self.addEventListener("fetch", (evento) => {
   // Los vídeos de las escenas se piden a trozos y la caché no sabe guardarlos: van directos.
   if (/\.(mp4|webm)$/.test(ruta)) return;
 
+  const guardadaAntes = caches.match(peticion, { ignoreSearch: true, cacheName: CACHE });
   const nueva = fetch(peticion).then(async (respuesta) => {
     if (respuesta.ok) {
       const cache = await caches.open(CACHE);
+      const guardada = await guardadaAntes;
       await cache.put(peticion, respuesta.clone());
+      if (guardada && !mismaVersion(guardada, respuesta)) await marcarProgramaNuevo();
     }
     return respuesta;
   });
   evento.waitUntil(nueva.then(() => {}, () => {})); // sin internet no pasa nada: se usa lo guardado
-  evento.respondWith(
-    caches.match(peticion, { ignoreSearch: true, cacheName: CACHE }).then((guardada) => guardada ?? nueva).then(aislar),
-  );
+  evento.respondWith(guardadaAntes.then((guardada) => guardada ?? nueva).then(aislar));
 });

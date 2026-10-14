@@ -10,6 +10,10 @@ Las pruebas usan un GitHub y un Gemini de mentira: no hace falta llave ni intern
 
       node app\taller\pruebas\probar_inicio.mjs app
 
+- `probar_actualizar.mjs`: que una versión nueva publicada llega a la primera: la app guardada en el aparato se recarga sola nada más abrirse si el programa ha cambiado, sin bucles, y espera si hay una ventana abierta. Trabaja sobre una copia de la app en la carpeta temporal:
+
+      node app\taller\pruebas\probar_actualizar.mjs app
+
 - `probar_combinar.mjs`: las reglas de los looks con calzado (las zapatillas montan looks y van con lo informal; los zapatos, con lo formal). Solo Node, sin navegador:
 
       node app\taller\pruebas\probar_combinar.mjs
