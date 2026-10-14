@@ -5,9 +5,9 @@
 // desplaza cada punto, y el navegador lo aplica a lo que hay detrás. Solo saben hacerlo
 // los navegadores de la familia de Chrome; en los demás el cristal se queda sin lente.
 
-const BISEL = 17;   // píxeles de borde que curvan lo de detrás
+const BISEL = 22;   // píxeles de borde que curvan lo de detrás
 const FUERZA = 1;   // cuánto se curva en el mismo borde, como parte del bisel
-const CURVA = 2;    // forma del bisel: más alto, la curva se concentra pegada al borde
+const CURVA = 1.7;  // forma del bisel: más alto, la curva se concentra pegada al borde
 const SVG = "http://www.w3.org/2000/svg";
 
 const lentes = new Map(); // "ancho x alto x radio" -> nombre de su filtro

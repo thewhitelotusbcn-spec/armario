@@ -110,8 +110,15 @@ hoja.addEventListener("click", (evento) => {
 });
 
 export function iniciarAparato() {
-  // Con esto la app se abre aunque no haya internet.
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  // Con esto la app se abre aunque no haya internet. Y cuando llega una versión nueva del
+  // programa, la app se vuelve a abrir sola con ella: no hace falta cerrarla dos veces.
+  if ("serviceWorker" in navigator) {
+    const habiaPrograma = Boolean(navigator.serviceWorker.controller);
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (habiaPrograma && !document.querySelector("dialog[open]")) location.reload();
+    });
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
 
   // La nube (si está conectada) se pone al día desde el principio, haya armario o no.
   iniciarNube();
