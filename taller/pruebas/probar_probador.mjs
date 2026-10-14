@@ -46,7 +46,8 @@ const contexto = await navegador.newContext({ viewport: { width: 412, height: 91
 await contexto.route("https://generativelanguage.googleapis.com/**", fake);
 const p = await contexto.newPage();
 p.on("pageerror", (e) => console.log("  error en página:", e.message));
-const URL_APP = `http://localhost:${PUERTO}/`;
+const BASE = `http://localhost:${PUERTO}/`;
+const URL_APP = BASE + "#/armario";
 const IMAGEN = `(color, tipo, w, h) => new Promise((r) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d"); x.fillStyle = color; x.fillRect(0, 0, w, h); c.toBlob(r, tipo); })`;
 const ficha = (id, nombre, categoria, color) => ({ id, nombre, categoria, temporada: ["entretiempo", "invierno"], registro: "sastre", formalidad: 4, color_principal: "azul marino", color_secundario: "ninguno", tejido: "lana", dibujo: "liso", talla: "48", marca: "Suitsupply", linea: "", notas: "", revisada: true, foto_tienda: `catalogo/${id}.webp`, foto_original: `fotos/${id}.jpg`, otras_fotos: [], ideas: [], color_foto: color });
 
@@ -62,7 +63,7 @@ try {
   }, { fichas: [ficha("p001", "Americana azul marino", "americanas", "#1f2a44"), ficha("p002", "Pantalón gris", "pantalones", "#8f8f8f"), ficha("p003", "Camisa blanca", "camisas", "#f0f0f0")], imagen: IMAGEN });
   await p.reload();
   await p.waitForSelector("[data-prenda]");
-  await p.goto(URL_APP + "#/prenda/p001");
+  await p.goto(BASE + "#/prenda/p001");
   await p.waitForSelector("#vista-prenda:not([hidden]) h1");
   comprobar("la página de la prenda tiene el botón Probar junto a Editar", (await p.locator("#barra-prenda button").allTextContents()).join(",") === "Probar,Editar");
   const looks = await p.locator(".tablero-probar").count();

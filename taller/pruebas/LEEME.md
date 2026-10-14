@@ -6,6 +6,10 @@ Las pruebas usan un GitHub y un Gemini de mentira: no hace falta llave ni intern
 
       node app\taller\pruebas\probar_probador.mjs app
 
+- `probar_inicio.mjs`: la pantalla de inicio: la escena de la época, el título, el look de hoy, el paso al armario y a una prenda, y que con «reducir movimiento» la escena sea una foto quieta:
+
+      node app\taller\pruebas\probar_inicio.mjs app
+
 - `probar_combinar.mjs`: las reglas de los looks con calzado (las zapatillas montan looks y van con lo informal; los zapatos, con lo formal). Solo Node, sin navegador:
 
       node app\taller\pruebas\probar_combinar.mjs

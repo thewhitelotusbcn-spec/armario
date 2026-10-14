@@ -49,7 +49,8 @@ const contexto = await navegador.newContext({ viewport: { width: 412, height: 91
 await contexto.route("https://generativelanguage.googleapis.com/**", fake);
 const p = await contexto.newPage();
 p.on("pageerror", (e) => console.log("  error en página:", e.message));
-const URL_APP = `http://localhost:${PUERTO}/`;
+const BASE = `http://localhost:${PUERTO}/`;
+const URL_APP = BASE + "#/armario";
 const IMAGEN = `(color, tipo, w, h) => new Promise((r) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d"); x.fillStyle = color; x.fillRect(0, 0, w, h); c.toBlob(r, tipo); })`;
 const fotoJpeg = async (color) => Buffer.from(await p.evaluate(async ({ imagen, color }) => Array.from(new Uint8Array(await (await eval(imagen)(color, "image/jpeg", 300, 400)).arrayBuffer())), { imagen: IMAGEN, color }));
 const prendasDe = () => p.evaluate(async () => (await import("./base.js")).armario.prendas.map((x) => ({ id: x.id, nombre: x.nombre, categoria: x.categoria, tejido: x.tejido, color: x.color_principal, dibujo: x.dibujo, secundario: x.color_secundario, registro: x.registro, formalidad: x.formalidad })));

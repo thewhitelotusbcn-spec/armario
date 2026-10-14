@@ -274,3 +274,23 @@ export function looksCon(prenda, todas, maximo = 3) {
   }
   return elegidos.slice(0, maximo);
 }
+
+// Para la pantalla de inicio: varios looks completos para la época en la que estamos,
+// cada día empezando por un pantalón distinto, para que el de hoy cambie solo.
+export function looksDelDia(todas, maximo = 6) {
+  const ahora = temporadaActual();
+  const dia = Math.floor(Date.now() / 86_400_000);
+  const abajos = todas.filter((p) => PAPEL[p.categoria] === "abajo" && p.temporada.includes(ahora));
+  const vistos = new Set();
+  const lista = [];
+  for (let i = 0; i < abajos.length && lista.length < maximo; i++) {
+    const prenda = abajos[(dia + i) % abajos.length];
+    const [look] = looksCon(prenda, todas, 1);
+    if (!look) continue;
+    const clave = look.piezas.map((pieza) => pieza.prenda.id).sort().join(",");
+    if (vistos.has(clave)) continue;
+    vistos.add(clave);
+    lista.push(look);
+  }
+  return lista;
+}

@@ -63,13 +63,13 @@ const CAPA = { abajo: 1, encima: 2, punto: 3, arriba: 4, pies: 5 };
 function crearBarra(prenda) {
   // Atrás deshace un paso; Armario vuelve al catálogo de una vez, por muchas prendas que se hayan visto.
   const volver = crear("a", "cristal redondo");
-  volver.href = "#/";
+  volver.href = "#/armario";
   volver.dataset.volver = "";
   volver.setAttribute("aria-label", "Atrás");
   volver.innerHTML = ICONOS.atras;
 
   const inicio = crear("a", "cristal capsula inicio");
-  inicio.href = "#/";
+  inicio.href = "#/armario";
   inicio.dataset.inicio = "";
   inicio.innerHTML = ICONOS.armario;
   inicio.append(crear("span", null, "Armario"));

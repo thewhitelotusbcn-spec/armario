@@ -137,7 +137,8 @@ async function aparato(nombre) {
   pagina.on("console", (m) => { if (m.type() === "error") console.log(`  [${nombre}] consola:`, m.text().slice(0, 200)); });
   return { contexto, pagina, nombre };
 }
-const URL_APP = `http://localhost:${PUERTO}/`;
+const BASE = `http://localhost:${PUERTO}/`;
+const URL_APP = BASE + "#/armario";
 const conectar = async (pagina, llave, desdeBienvenida = false) => {
   await pagina.click(desdeBienvenida ? "#bienvenida-botones button" : "#nube");
   const hoja = pagina.locator("#hoja-nube");
@@ -210,7 +211,7 @@ try {
   comprobar("B no ha vuelto a subir nada", nube.puts === putsTrasSubir, `${nube.puts} subidas`);
 
   console.log("4. Editar en B: llega a A en segundos");
-  await B.pagina.goto(URL_APP + "#/prenda/p001");
+  await B.pagina.goto(BASE + "#/prenda/p001");
   await B.pagina.waitForSelector("#vista-prenda:not([hidden]) h1");
   await B.pagina.click("#barra-prenda button:has-text('Editar')");
   await B.pagina.waitForSelector("#hoja form");
@@ -244,14 +245,14 @@ try {
   comprobar("la ficha de la foto cambiada también llega", fichaB === 123, String(fichaB));
 
   console.log("6. Sin conexión: se apunta y se sube al volver");
-  await B.pagina.goto(URL_APP + "#/prenda/p003");
+  await B.pagina.goto(BASE + "#/prenda/p003");
   await B.pagina.waitForSelector("#vista-prenda:not([hidden]) h1");
   await B.contexto.setOffline(true);
   await B.pagina.click("#barra-prenda button:has-text('Editar')");
   await B.pagina.fill('#hoja input[name="nombre"]', "Jersey camel de lana");
   await B.pagina.click("#hoja .hoja-accion.principal");
   await B.pagina.waitForSelector("#hoja:not([open])");
-  await B.pagina.evaluate(() => { location.hash = "#/"; });
+  await B.pagina.evaluate(() => { location.hash = "#/armario"; });
   await B.pagina.waitForSelector("#vista-catalogo:not([hidden])");
   await B.pagina.click("#nube");
   const sinRed = await esperarA(async () => { const e = await estadoNube(B.pagina); return /Sin conexión/.test(e) ? e : null; }, 10000);

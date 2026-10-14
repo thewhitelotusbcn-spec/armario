@@ -16,6 +16,8 @@ console.log("1. Primera copia (nueva) en un aparato vacío: entra sin preguntar"
 const nueva = await zipDe("2026-10-13T07:36:00Z", "Camisa nueva");
 let dialogos = 0; p.on("dialog", (d) => { dialogos++; d.dismiss(); });
 await p.setInputFiles("#bienvenida-botones input[type=file]", { name: "armario-copia.zip", mimeType: "application/zip", buffer: nueva });
+await p.waitForSelector("#vista-inicio:not([hidden])", { timeout: 20000 });
+await p.goto(`http://localhost:${PUERTO}/#/armario`);
 await p.waitForSelector("[data-prenda]", { timeout: 20000 });
 comprobar("entra y la app se abre con la prenda", (await p.textContent('[data-prenda="p001"]')).includes("Camisa nueva") && dialogos === 0);
 await p.click("#copia");

@@ -24,6 +24,12 @@ const ARCHIVOS = [
   "nube.js",
   "probador.js",
   "gemini.js",
+  "inicio.js",
+  "inicio.css",
+  "fuentes/cormorant.woff2",
+  "escenas/invierno.jpg",
+  "escenas/entretiempo.jpg",
+  "escenas/verano.jpg",
   "prenda.js",
   "recortador.js",
   "recortador-hilo.js",
@@ -69,7 +75,10 @@ self.addEventListener("fetch", (evento) => {
   // Solo lo que es de la app. Lo demás (como preguntar si hay un ordenador detrás) va directo.
   if (peticion.method !== "GET" || !peticion.url.startsWith(self.registration.scope)) return;
   // Los archivos grandes del recortador los descarga y guarda él mismo, una sola vez.
-  if (/\/recortador\/.*\.(bin|wasm|json)$/.test(new URL(peticion.url).pathname)) return;
+  const ruta = new URL(peticion.url).pathname;
+  if (/\/recortador\/.*\.(bin|wasm|json)$/.test(ruta)) return;
+  // Los vídeos de las escenas se piden a trozos y la caché no sabe guardarlos: van directos.
+  if (/\.(mp4|webm)$/.test(ruta)) return;
 
   const nueva = fetch(peticion).then(async (respuesta) => {
     if (respuesta.ok) {

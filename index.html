@@ -13,10 +13,15 @@
   <link rel="stylesheet" href="estilos.css">
   <link rel="stylesheet" href="prenda.css">
   <link rel="stylesheet" href="cristal.css">
+  <link rel="stylesheet" href="inicio.css">
+  <link rel="preload" href="fuentes/cormorant.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body>
   <!-- Al bajar por la página, el contenido se desvanece bajo la barra flotante. -->
   <div class="borde" aria-hidden="true"></div>
+
+  <!-- Pantalla de inicio: la escena de la época del año y el look de hoy. La rellena inicio.js -->
+  <section id="vista-inicio" hidden></section>
 
   <!-- Pantalla del catálogo -->
   <div id="vista-catalogo">

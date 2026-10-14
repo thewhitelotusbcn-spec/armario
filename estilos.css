@@ -1,4 +1,13 @@
 /* Aspecto del catálogo. Los colores y medidas principales están aquí arriba. */
+
+/* La letra de los títulos: una serif de alto contraste, en mayúsculas con aire entre letras. */
+@font-face {
+  font-family: "Cormorant";
+  src: url("fuentes/cormorant.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
 
@@ -23,6 +32,7 @@
     system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
   --titular: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI",
     system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sello: "Cormorant", "Cormorant Garamond", Georgia, "Times New Roman", serif;
   /* Letra de máquina de escribir, la más parecida a la de Zara Origins que hay en cada sistema. */
   --mono: "Letter Gothic Std", "Lucida Sans Typewriter", "Cascadia Mono", Consolas, ui-monospace, "SF Mono",
     Menlo, monospace;
@@ -132,8 +142,9 @@ button {
 
 .titulo {
   margin: 0;
-  font: 700 34px/1.08 var(--titular);
-  letter-spacing: -0.024em;
+  font: 600 28px/1.08 var(--sello);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
 }
 
 .recuento {
@@ -146,12 +157,12 @@ button {
 
 @media (min-width: 700px) {
   .cabecera { padding-top: 48px; }
-  .titulo { font-size: 44px; }
+  .titulo { font-size: 34px; }
 }
 
 @media (min-width: 1100px) {
   .cabecera { padding-top: 64px; }
-  .titulo { font-size: 48px; }
+  .titulo { font-size: 38px; }
 }
 
 /* ---------- Barra flotante ---------- */

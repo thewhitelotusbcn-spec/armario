@@ -4,11 +4,13 @@ import { iniciarAparato } from "./aparato.js";
 import { $, armario, cargarPrendas, conTransicion } from "./base.js";
 import { cerrarMenu, enlaceDeTarjeta, fotoDeTarjeta, iniciarCatalogo, moverPulgar } from "./catalogo.js";
 import { iniciarCristal } from "./cristal.js";
+import { olvidarLooksDelDia, pararInicio, pintarInicio } from "./inicio.js";
 import { iniciarMovil } from "./movil.js";
 import { iniciarNueva } from "./nueva.js";
 import { pintarPrenda } from "./prenda.js";
 import { repintarCatalogo } from "./catalogo.js";
 
+const vistaInicio = $("vista-inicio");
 const vistaCatalogo = $("vista-catalogo");
 const vistaPrenda = $("vista-prenda");
 const centinela = $("centinela");
@@ -17,11 +19,17 @@ let ruta = { vista: "catalogo" };
 let alturaCatalogo = 0; // por dónde iba el catálogo al abrir una prenda, para volver al mismo sitio
 let ultimoClic = null;  // foto de la prenda en la que se acaba de pulsar
 
-// La dirección de la página dice qué se ve: "#/prenda/p003" es esa prenda; cualquier otra, el catálogo.
+// La dirección de la página dice qué se ve: "#/prenda/p003" es esa prenda, "#/armario" el catálogo
+// y cualquier otra, el inicio. En el taller y la primera vez (sin armario) se va al catálogo.
 function leerRuta() {
+  if (location.hash === "#/armario") return { vista: "catalogo" };
   const id = location.hash.match(/^#\/prenda\/([\w-]+)$/)?.[1];
-  return armario.prendas.some((p) => p.id === id) ? { vista: "prenda", id } : { vista: "catalogo" };
+  if (armario.prendas.some((p) => p.id === id)) return { vista: "prenda", id };
+  return armario.taller || armario.prendas.length === 0 ? { vista: "catalogo" } : { vista: "inicio" };
 }
+
+// El inicio y el catálogo son las dos pantallas raíz: de ellas se sale a las prendas.
+const esRaiz = (vista) => vista === "inicio" || vista === "catalogo";
 
 // Mide dónde acaba la barra flotante de la pantalla visible; el desvanecido llega hasta ahí.
 function medirBarra() {
@@ -39,12 +47,17 @@ function marcarDesplazado() {
 
 function mostrar(nueva) {
   const esPrenda = nueva.vista === "prenda" && pintarPrenda(nueva.id);
-  vistaCatalogo.hidden = esPrenda;
+  const esInicio = !esPrenda && nueva.vista === "inicio";
+  vistaInicio.hidden = !esInicio;
+  vistaCatalogo.hidden = esPrenda || esInicio;
   vistaPrenda.hidden = !esPrenda;
+  document.body.classList.toggle("en-inicio", esInicio);
+  if (esInicio) pintarInicio();
+  else pararInicio();
   cerrarMenu();
-  scrollTo({ top: esPrenda ? 0 : alturaCatalogo, behavior: "instant" });
+  scrollTo({ top: esPrenda || esInicio ? 0 : alturaCatalogo, behavior: "instant" });
   document.title = esPrenda ? `${armario.prendas.find((p) => p.id === nueva.id).nombre} · Armario` : "Armario";
-  if (!esPrenda) moverPulgar(false);
+  if (!esPrenda && !esInicio) moverPulgar(false);
   medirBarra();
   marcarDesplazado();
 }
@@ -82,13 +95,14 @@ function navegar() {
 }
 
 let porEnlace = false; // el cambio de pantalla en curso viene de pulsar un enlace de la app
-let pasos = null;      // pantallas abiertas desde el catálogo hasta la actual (null: no se sabe)
+let pasos = null;      // pantallas abiertas desde la raíz hasta la actual (null: no se sabe)
+let raiz = null;       // de qué pantalla raíz se salió (inicio o catálogo)
 
-// A cuántas pantallas queda el catálogo, según lo que recuerda la pantalla actual.
+// A cuántas pantallas queda la raíz, según lo que recuerda la pantalla actual.
 function pasosDesdeElCatalogo() {
   const dentro = history.state?.dentro;
   if (typeof dentro === "number") return dentro;
-  return leerRuta().vista === "catalogo" ? 0 : null;
+  return esRaiz(leerRuta().vista) ? 0 : null;
 }
 
 document.addEventListener(
@@ -102,8 +116,9 @@ document.addEventListener(
       // El botón de atrás deshace el último paso si se llegó hasta aquí navegando por la app.
       evento.preventDefault();
       history.back();
-    } else if (evento.target.closest("a[data-inicio]") && typeof dentro === "number" && dentro > 0) {
+    } else if (evento.target.closest("a[data-inicio]") && typeof dentro === "number" && dentro > 0 && raiz === "catalogo") {
       // El botón del armario deshace de una vez todos los pasos dados desde el catálogo.
+      // (Si se salió del inicio, el enlace lleva al catálogo sin más.)
       evento.preventDefault();
       history.go(-dentro);
     } else if (evento.target.closest('a[href^="#/"]')) {
@@ -118,17 +133,25 @@ addEventListener("hashchange", () => {
     // Las pantallas a las que se llega por un enlace de la app recuerdan a cuántos pasos
     // queda el catálogo: así "atrás" sabe deshacer uno y "armario", todos de una vez.
     const destino = leerRuta();
-    const dentro = destino.vista === "catalogo" ? 0 : ruta.vista === "catalogo" ? 1 : pasos === null ? null : pasos + 1;
-    history.replaceState(dentro === null ? null : { dentro }, "");
+    const dentro = esRaiz(destino.vista) ? 0 : esRaiz(ruta.vista) ? 1 : pasos === null ? null : pasos + 1;
+    if (esRaiz(destino.vista)) raiz = destino.vista;
+    else if (esRaiz(ruta.vista)) raiz = ruta.vista;
+    history.replaceState(dentro === null ? null : { dentro, raiz }, "");
   }
   porEnlace = false;
   pasos = pasosDesdeElCatalogo();
+  raiz = history.state?.raiz ?? raiz;
   navegar();
 });
 
+// Cualquier cambio del armario (nube, «+», edición) deja viejos los looks de hoy.
+document.addEventListener("armario-pendientes", olvidarLooksDelDia);
+
 // Cuando llegan cambios de la nube se repinta lo que se esté viendo.
 document.addEventListener("armario-actualizado", (evento) => {
+  olvidarLooksDelDia();
   repintarCatalogo();
+  if (ruta.vista === "inicio") pintarInicio();
   if (ruta.vista === "prenda" && evento.detail.ids.includes(ruta.id)) {
     const prenda = armario.prendas.find((p) => p.id === ruta.id);
     if (!prenda) return;
@@ -163,6 +186,7 @@ async function iniciar() {
   }
   ruta = leerRuta();
   pasos = pasosDesdeElCatalogo();
+  raiz = history.state?.raiz ?? (esRaiz(ruta.vista) ? ruta.vista : null);
   mostrar(ruta);
 }
 
