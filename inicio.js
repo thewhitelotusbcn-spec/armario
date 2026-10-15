@@ -57,8 +57,12 @@ function pintarLook() {
     enlace.append(marco);
     fila.append(enlace);
   }
+  // La frase nombra las dos primeras prendas; el resto se ve en las fichas de abajo.
   const nombres = prendas.map((p) => p.nombre.toLowerCase());
-  const frase = nombres.length > 1 ? `${nombres.slice(0, -1).join(", ")} y ${nombres.at(-1)}` : nombres[0];
+  const restantes = nombres.length - 2;
+  const frase =
+    nombres.length <= 2 ? nombres.join(" y ")
+    : `${nombres[0]}, ${nombres[1]} y ${["una", "dos", "tres", "cuatro", "cinco"][restantes - 1] ?? restantes} más`;
   const acciones = crear("div", "inicio-acciones");
   acciones.append(
     crearAccion("Vérmelo puesto", "cristal inicio-boton", () => abrirProbador(prendas)),

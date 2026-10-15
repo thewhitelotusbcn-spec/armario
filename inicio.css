@@ -95,16 +95,20 @@ body.en-inicio .anadir { display: none; }
 }
 
 /* El nombre del look, discreto: la escena manda y las prendas ya se ven en las fichas. */
+/* Todo lo escrito queda en la mitad izquierda: la escena respira a la derecha. */
 .inicio-look {
   margin: 4px 0 0;
+  max-width: 62%;
   font: 500 21px/1.15 var(--sello);
   letter-spacing: 0;
-  text-wrap: balance;
+  text-wrap: pretty;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   overflow: hidden;
 }
+
+.inicio-hoy { max-width: 62%; }
 
 .inicio-prendas {
   display: flex;
