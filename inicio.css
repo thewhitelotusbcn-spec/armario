@@ -94,11 +94,16 @@ body.en-inicio .anadir { display: none; }
   color: rgba(243, 241, 236, 0.75);
 }
 
+/* El nombre del look, discreto: la escena manda y las prendas ya se ven en las fichas. */
 .inicio-look {
   margin: 4px 0 0;
-  font: 500 32px/1.02 var(--sello);
-  letter-spacing: -0.005em;
+  font: 500 21px/1.15 var(--sello);
+  letter-spacing: 0;
   text-wrap: balance;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .inicio-prendas {
@@ -212,7 +217,7 @@ body.en-inicio .anadir { display: none; }
 
 @media (min-width: 700px) {
   .inicio-titulo { font-size: 64px; }
-  .inicio-look { font-size: 44px; }
+  .inicio-look { font-size: 26px; }
   .inicio-tarjeta,
   .inicio-barra { left: 50%; right: auto; width: min(560px, calc(100vw - 64px)); transform: translateX(-50%); }
 }
