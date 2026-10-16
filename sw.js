@@ -86,6 +86,18 @@ async function marcarProgramaNuevo() {
   await cache.put(new Request(self.registration.scope + MARCA), new Response("1"));
 }
 
+// La marca se deja cuando ya no queda ninguna descarga en vuelo: así la app no se recarga
+// con la mitad de los archivos nuevos y la otra mitad viejos.
+let enVuelo = 0;
+let hayNuevo = false;
+async function terminaUnaDescarga() {
+  enVuelo -= 1;
+  if (enVuelo === 0 && hayNuevo) {
+    hayNuevo = false;
+    await marcarProgramaNuevo();
+  }
+}
+
 // Se responde con lo guardado, que es inmediato, y a la vez se pide la versión nueva
 // por internet para la próxima vez. Si ha cambiado algo, se deja la marca para que la app
 // se recargue nada más abrirse: así las mejoras llegan a la primera.
@@ -100,15 +112,17 @@ self.addEventListener("fetch", (evento) => {
   if (/\.(mp4|webm)$/.test(ruta)) return;
 
   const guardadaAntes = caches.match(peticion, { ignoreSearch: true, cacheName: CACHE });
+  enVuelo += 1;
   const nueva = fetch(peticion).then(async (respuesta) => {
     if (respuesta.ok) {
       const cache = await caches.open(CACHE);
       const guardada = await guardadaAntes;
       await cache.put(peticion, respuesta.clone());
-      if (guardada && !mismaVersion(guardada, respuesta)) await marcarProgramaNuevo();
+      if (guardada && !mismaVersion(guardada, respuesta)) hayNuevo = true;
     }
     return respuesta;
   });
-  evento.waitUntil(nueva.then(() => {}, () => {})); // sin internet no pasa nada: se usa lo guardado
+  // Sin internet no pasa nada: se usa lo guardado.
+  evento.waitUntil(nueva.then(() => {}, () => {}).then(terminaUnaDescarga));
   evento.respondWith(guardadaAntes.then((guardada) => guardada ?? nueva).then(aislar));
 });

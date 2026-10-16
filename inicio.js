@@ -19,7 +19,11 @@ let video = null;
 let tarjeta = null;   // el look de hoy
 let looks = null;     // los looks de hoy, por orden
 let cual = 0;         // cuál se está viendo
+let lookPintado = null; // el look que está en pantalla, para no repintarlo sin motivo
 let epocaPintada = null;
+
+// Un look se reconoce por sus prendas y la versión de sus fotos.
+const claveDe = (look) => (look ? look.piezas.map((pieza) => `${pieza.prenda.id}:${pieza.prenda.foto_version ?? ""}:${pieza.prenda.nombre}`).join(",") : "");
 
 const sinMovimiento = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -34,6 +38,8 @@ function crearAccion(texto, clase, alPulsar) {
 // El look de hoy: su frase, las prendas y los dos botones.
 function pintarLook() {
   const look = looks[cual % looks.length] ?? null;
+  if (lookPintado && claveDe(look) === claveDe(lookPintado) && tarjeta.childElementCount > 0) return;
+  lookPintado = look;
   tarjeta.replaceChildren();
   if (!look) {
     tarjeta.append(
@@ -137,14 +143,29 @@ function construir() {
   vista.querySelector(".inicio-epoca").textContent = temporadaActual();
 }
 
+// Calcula los looks de hoy si hace falta. Se puede llamar antes de la transición de
+// pantalla, para que el cálculo no caiga en medio de la animación.
+export function prepararInicio() {
+  if (!looks) {
+    looks = looksDelDia(armario.prendas);
+    cual = 0;
+    // Si el armario cambió (nube, «+») mientras se veía un look, ese look se queda: no salta solo.
+    if (lookPintado) {
+      const piezas = lookPintado.piezas.map((pieza) => ({ ...pieza, prenda: armario.prendas.find((p) => p.id === pieza.prenda.id) }));
+      if (piezas.every((pieza) => pieza.prenda)) {
+        const donde = looks.findIndex((look) => claveDe(look) === claveDe({ piezas }));
+        if (donde >= 0) cual = donde;
+        else looks.unshift({ ...lookPintado, piezas });
+      }
+    }
+  }
+}
+
 // Pinta (o repinta) el inicio y arranca la escena. Se llama cada vez que se enseña.
 export function pintarInicio() {
   if (!vista.dataset.construida) construir();
   pintarEscena();
-  if (!looks) {
-    looks = looksDelDia(armario.prendas);
-    cual = 0;
-  }
+  prepararInicio();
   pintarLook();
   if (video.src && !sinMovimiento()) video.play().catch(() => {});
 }

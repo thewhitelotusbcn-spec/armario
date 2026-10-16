@@ -1,5 +1,10 @@
 /* La pantalla de inicio: escena a pantalla completa, título como de serie y el look de hoy. */
 
+/* Arranque en oscuro: hasta que la app pinta el inicio, nada blanco asoma. */
+html.arranque-inicio,
+html.arranque-inicio body { background: #0d1117; }
+html.arranque-inicio body > :not(#vista-inicio) { visibility: hidden; }
+
 #vista-inicio {
   position: fixed;
   inset: 0;

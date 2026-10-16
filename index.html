@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#ffffff">
+  <!-- Si la última vez la app se abrió en el inicio (la escena oscura), arranca ya en oscuro:
+       así no hay un fogonazo blanco mientras carga. -->
+  <script>
+    try {
+      if ((location.hash === "" || location.hash === "#/") && localStorage.getItem("armario-arranque") === "inicio") {
+        document.documentElement.classList.add("arranque-inicio");
+        document.querySelector('meta[name="theme-color"]').content = "#0d1117";
+        // Si algo falla antes de pintar, se vuelve a claro: nunca una pantalla negra muda.
+        const soltar = () => document.documentElement.classList.remove("arranque-inicio");
+        addEventListener("error", soltar);
+        addEventListener("unhandledrejection", soltar);
+        setTimeout(soltar, 4000);
+      }
+    } catch (fallo) {
+      // sin almacenamiento local no pasa nada: arranca en claro
+    }
+  </script>
   <title>Armario</title>
   <!-- Con esto el móvil puede instalar la app y ponerle su icono. -->
   <link rel="manifest" href="manifest.webmanifest">

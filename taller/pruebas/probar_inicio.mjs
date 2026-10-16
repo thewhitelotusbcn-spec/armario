@@ -36,6 +36,30 @@ try {
   const look2 = await p.evaluate(() => document.querySelector(".inicio-look").textContent);
   comprobar("«Otro look» cambia el look", look2 !== look1.frase, look2);
 
+  console.log("2b. Arranque en oscuro: la próxima apertura no pasa por blanco");
+  comprobar("la app apunta que arranca en el inicio y pone la barra de estado oscura", (await p.evaluate(() => localStorage.getItem("armario-arranque"))) === "inicio" && (await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content)) === "#0d1117");
+  // El programa tarda un poco en llegar (como en un móvil): se mira qué se ve mientras tanto.
+  await p.route("**/app.js", async (route) => { await new Promise((r) => setTimeout(r, 700)); await route.continue(); });
+  await p.goto(BASE, { waitUntil: "domcontentloaded" });
+  const arranque = await p.evaluate(() => ({ clase: document.documentElement.classList.contains("arranque-inicio"), fondo: getComputedStyle(document.body).backgroundColor, catalogo: getComputedStyle(document.getElementById("vista-catalogo")).visibility }));
+  comprobar("antes de pintar nada, el fondo ya es oscuro y el catálogo no asoma", arranque.clase && arranque.fondo === "rgb(13, 17, 23)" && arranque.catalogo === "hidden", JSON.stringify(arranque));
+  await p.unroute("**/app.js");
+  await p.waitForSelector("#vista-inicio:not([hidden]) .inicio-titulo");
+  comprobar("y al pintar el inicio se suelta el arranque", !(await p.evaluate(() => document.documentElement.classList.contains("arranque-inicio"))));
+  await p.goto(BASE + "#/armario", { waitUntil: "domcontentloaded" });
+  comprobar("si se abre en el armario, arranca en claro", !(await p.evaluate(() => document.documentElement.classList.contains("arranque-inicio"))));
+  await p.waitForSelector("#vista-catalogo:not([hidden]) [data-prenda]");
+  comprobar("y la barra de estado vuelve a blanco", (await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content)) === "#ffffff");
+  await p.goto(BASE);
+  await p.waitForSelector("#vista-inicio:not([hidden]) .inicio-titulo");
+
+  console.log("2c. Si llega la nube, el look que se está viendo no salta ni se repinta");
+  const antesNube = await p.evaluate(() => ({ frase: document.querySelector(".inicio-look").textContent, nodo: (window.__nodo = document.querySelector(".inicio-prendas"), true) }));
+  await p.evaluate(async () => { const base = await import("./base.js"); base.armario.prendas.push({ id: "p9", nombre: "Gorra gris", categoria: "accesorios", registro: "relajado", formalidad: 2, color_principal: "gris", color_secundario: "ninguno", temporada: ["verano", "entretiempo", "invierno"], tejido: "algodón", dibujo: "liso", talla: "", marca: "", linea: "", notas: "", revisada: false, foto_tienda: "catalogo/p9.webp", foto_original: "fotos/p9.jpg", otras_fotos: [], ideas: [] }); document.dispatchEvent(new CustomEvent("armario-actualizado", { detail: { ids: ["p9"] } })); });
+  await new Promise((r) => setTimeout(r, 300));
+  const trasNube = await p.evaluate(() => ({ frase: document.querySelector(".inicio-look").textContent, mismoNodo: window.__nodo === document.querySelector(".inicio-prendas") }));
+  comprobar("mismo look y mismas fichas en pantalla", trasNube.frase === antesNube.frase && trasNube.mismoNodo, JSON.stringify(trasNube));
+
   console.log("3. Del inicio al armario y a una prenda, y vuelta");
   await p.click(".inicio-pestana:has-text('Armario')");
   await p.waitForSelector("#vista-catalogo:not([hidden]) [data-prenda]");

@@ -4,7 +4,7 @@ import { iniciarAparato } from "./aparato.js";
 import { $, armario, cargarPrendas, conTransicion } from "./base.js";
 import { cerrarMenu, enlaceDeTarjeta, fotoDeTarjeta, iniciarCatalogo, moverPulgar } from "./catalogo.js";
 import { iniciarCristal } from "./cristal.js";
-import { olvidarLooksDelDia, pararInicio, pintarInicio } from "./inicio.js";
+import { olvidarLooksDelDia, pararInicio, pintarInicio, prepararInicio } from "./inicio.js";
 import { iniciarMovil } from "./movil.js";
 import { iniciarNueva } from "./nueva.js";
 import { pintarPrenda } from "./prenda.js";
@@ -52,8 +52,19 @@ function mostrar(nueva) {
   vistaCatalogo.hidden = esPrenda || esInicio;
   vistaPrenda.hidden = !esPrenda;
   document.body.classList.toggle("en-inicio", esInicio);
+  // Ya hay pantalla elegida: se suelta el arranque en oscuro (antes de pintar, por si algo falla)
+  // y se apunta cómo arrancar la próxima vez.
+  document.documentElement.classList.remove("arranque-inicio");
+  document.querySelector('meta[name="theme-color"]').content = esInicio ? "#0d1117" : "#ffffff";
   if (esInicio) pintarInicio();
   else pararInicio();
+  if (esRaiz(nueva.vista)) {
+    try {
+      localStorage.setItem("armario-arranque", armario.taller || armario.prendas.length === 0 ? "catalogo" : "inicio");
+    } catch {
+      // sin almacenamiento local, arranca en claro
+    }
+  }
   cerrarMenu();
   scrollTo({ top: esPrenda || esInicio ? 0 : alturaCatalogo, behavior: "instant" });
   document.title = esPrenda ? `${armario.prendas.find((p) => p.id === nueva.id).nombre} · Armario` : "Armario";
@@ -76,6 +87,8 @@ function navegar() {
     origen.style.viewTransitionName = "heroe";
   }
   ultimoClic = null;
+
+  if (ruta.vista === "inicio") prepararInicio(); // el cálculo de los looks, fuera de la animación
 
   let destino = null;
   conTransicion(() => {
@@ -171,6 +184,7 @@ async function iniciar() {
   try {
     await cargarPrendas();
   } catch {
+    document.documentElement.classList.remove("arranque-inicio"); // que el aviso se vea
     $("recuento").textContent = "No se han podido cargar las prendas. Cierra la app y vuelve a abrirla.";
     return;
   }

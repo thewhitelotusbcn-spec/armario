@@ -1,6 +1,8 @@
 # Estado de la app (para empezar un chat nuevo sin perder el hilo)
 
-Léelo entero antes de tocar nada. Lo escribió la sesión anterior el 15/10/2026.
+Léelo entero antes de tocar nada. Lo escribió la sesión anterior; última puesta al día: 16/10/2026.
+
+Antes de publicar, pasa toda la batería de pruebas (abajo). Las siete tienen que quedar en verde.
 
 ## Reglas de trabajo con Asier
 
@@ -36,9 +38,9 @@ Pruebas en `taller/pruebas/` (ver su `LEEME.md`). Usan Playwright con un GitHub 
 node taller/pruebas/probar_nube.mjs .        # nube: dos aparatos (25 comprobaciones)
 node taller/pruebas/probar_probador.mjs .    # probador (25)
 node taller/pruebas/probar_nueva.mjs .       # «+» con Gemini (13)
-node taller/pruebas/probar_inicio.mjs .      # inicio (12)
-node taller/pruebas/probar_actualizar.mjs .  # la app se recarga sola con versión nueva (7)
-node taller/pruebas/probar_combinar.mjs      # reglas de looks (solo Node)
+node taller/pruebas/probar_inicio.mjs .      # inicio (18)
+node taller/pruebas/probar_actualizar.mjs .  # la app se recarga sola con versión nueva (8)
+node taller/pruebas/probar_combinar.mjs      # reglas de looks (10, solo Node)
 node taller/pruebas/probar_copia.mjs .       # copias (4)
 ```
 
@@ -51,7 +53,9 @@ node taller/pruebas/probar_copia.mjs .       # copias (4)
 - Inicio (`inicio.js`, `inicio.css`): vídeo de la época del año (`escenas/`), título ARMARIO en Cormorant (`fuentes/`), look de hoy, barra Hoy · Armario · Probador.
 - Cristal líquido (`cristal.css`, `cristal.js`): barras y botones iguales de transparentes que el «+»; sin desenfoque durante las transiciones.
 - Copias (`copia.js`, `aparato.js`): exportar e importar zip; avisa si la copia es más vieja que la que hay.
-- Actualización sola al abrir (`sw.js` + `aparato.js`).
+- Actualización sola al abrir (`sw.js` + `aparato.js`): la marca se deja solo cuando no queda ninguna descarga en vuelo. Los nombres de caché y marca están en los dos archivos y la prueba comprueba que coinciden.
+- Arranque en oscuro (`index.html` + `inicio.css` + `app.js`): si la última vez se abrió en el inicio, la página arranca con fondo oscuro y el catálogo escondido hasta que se pinta el inicio; nada de fogonazo blanco. Si algo falla al arrancar, se vuelve a claro para que se vea el aviso.
+- Auditoría del 16/10 (revisión de código con `/code-review` sobre todo lo publicado desde la etiqueta `antes-del-rediseno`): 11 hallazgos, todos corregidos y con prueba. Entre ellos: fichas a medio rellenar (sin formalidad, registro o temporada) ya no rompen los looks; los looks del día son solo de la época actual; un look montado sobre un calzado respeta la época del calzado; el look de hoy no salta ni se repinta cuando llega la nube; el nombre editado de una prenda sí se refleja en el inicio.
 
 ## Pendiente o en marcha
 

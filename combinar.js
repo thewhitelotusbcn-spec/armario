@@ -85,17 +85,23 @@ function armonia(a, b) {
   return nota;
 }
 
+// Una ficha a medio rellenar (recién traída del ordenador, sin revisar) no rompe nada:
+// sin formalidad cuenta como 3, sin registro como puente, sin temporada como de todo el año.
+const nivel = (p) => (Number.isFinite(p.formalidad) ? p.formalidad : 3);
+const estilo = (p) => (["sastre", "puente", "relajado"].includes(p.registro) ? p.registro : "puente");
+const epocasDe = (p) => (Array.isArray(p.temporada) && p.temporada.length > 0 ? p.temporada : TEMPORADAS);
+
 // Nota de 0 a 1 de lo bien que van juntas dos prendas. 0 significa que no se combinan.
 export function afinidad(a, b) {
   const [papelA, papelB] = [PAPEL[a.categoria], PAPEL[b.categoria]];
   if (!papelA || !papelB || papelA === papelB) return 0;
-  if (!a.temporada.some((t) => b.temporada.includes(t))) return 0;
+  if (!epocasDe(a).some((t) => epocasDe(b).includes(t))) return 0;
 
-  const salto = Math.abs(a.formalidad - b.formalidad);
+  const salto = Math.abs(nivel(a) - nivel(b));
   if (salto >= 3) return 0;
   let nota = armonia(a, b) * [1, 0.92, 0.5][salto];
 
-  if (a.registro !== b.registro) nota *= [a.registro, b.registro].includes("puente") ? 0.93 : 0.5;
+  if (estilo(a) !== estilo(b)) nota *= [estilo(a), estilo(b)].includes("puente") ? 0.93 : 0.5;
   if (a.dibujo !== "liso" && b.dibujo !== "liso") nota *= 0.55; // dos dibujos compiten
   if (a.tejido === "denim" && b.tejido === "denim") nota *= a.color_principal === b.color_principal ? 0.8 : 0.92;
 
@@ -172,7 +178,6 @@ function conjuntosCon(prenda, todas) {
       for (const punto of opciones("punto")) {
         for (const encima of opciones("encima")) {
           if (!arriba && !punto) continue;
-          if (!abajo) continue;
           const piezas = [
             { prenda: encima, papel: "encima" },
             { prenda: punto, papel: "punto" },
@@ -181,7 +186,7 @@ function conjuntosCon(prenda, todas) {
           ].filter((pieza) => pieza.prenda);
 
           const temporadas = TEMPORADAS.filter(
-            (t) => piezas.every((pieza) => pieza.prenda.temporada.includes(t)) && abrigoValido(t, punto, encima),
+            (t) => piezas.every((pieza) => epocasDe(pieza.prenda).includes(t)) && abrigoValido(t, punto, encima),
           );
           if (temporadas.length === 0 || !leVa(piezas)) continue;
 
@@ -203,13 +208,13 @@ function conjuntosCon(prenda, todas) {
 }
 
 // La formalidad media de las piezas de un conjunto.
-const formalidadDe = (piezas) => piezas.reduce((suma, pieza) => suma + pieza.prenda.formalidad, 0) / piezas.length;
+const formalidadDe = (piezas) => piezas.reduce((suma, pieza) => suma + nivel(pieza.prenda), 0) / piezas.length;
 
 // Cómo de bien casan los estilos de un conjunto: todo del mismo registro suma; mezclar
 // sastre con relajado (aunque haya una prenda puente en medio) resta. Un look tiene que
 // contar una sola historia.
 function coherencia(piezas) {
-  const registros = new Set(piezas.map((pieza) => pieza.prenda.registro));
+  const registros = new Set(piezas.map((pieza) => estilo(pieza.prenda)));
   if (registros.has("sastre") && registros.has("relajado")) return -0.2;
   if (registros.size === 1) return 0.06;
   return 0;
@@ -217,7 +222,7 @@ function coherencia(piezas) {
 
 // El registro que manda en un conjunto: sastre o relajado si hay alguna prenda así; si no, puente.
 function registroDe(piezas) {
-  const registros = piezas.map((pieza) => pieza.prenda.registro);
+  const registros = piezas.map((pieza) => estilo(pieza.prenda));
   if (registros.includes("sastre")) return "sastre";
   if (registros.includes("relajado")) return "relajado";
   return "puente";
@@ -226,18 +231,18 @@ function registroDe(piezas) {
 // El calzado que mejor acompaña a un conjunto en esa época, o null si ninguno encaja con todo.
 // "fijo" es un calzado que ya viene impuesto (cuando el look se monta a partir de él).
 function calzadoPara(conjunto, temporada, todas, fijo = null) {
-  if (fijo) return fijo;
+  if (fijo) return epocasDe(fijo).includes(temporada) ? fijo : null;
   let mejor = null;
   const formalidad = formalidadDe(conjunto.piezas);
   const registro = registroDe(conjunto.piezas);
   for (const zapato of todas) {
-    if (PAPEL[zapato.categoria] !== "pies" || !zapato.temporada.includes(temporada)) continue;
+    if (PAPEL[zapato.categoria] !== "pies" || !epocasDe(zapato).includes(temporada)) continue;
     const notas = conjunto.piezas.map((pieza) => afinidad(zapato, pieza.prenda));
     if (Math.min(...notas) < MINIMO) continue;
     // A igual armonía, el calzado que va con el tono y el estilo del look: ni zapato de
     // vestir con camiseta ni zapatilla con traje.
-    const contrario = (registro === "sastre" && zapato.registro === "relajado") || (registro === "relajado" && zapato.registro === "sastre");
-    const media = notas.reduce((suma, n) => suma + n, 0) / notas.length - Math.abs(zapato.formalidad - formalidad) * 0.12 - (contrario ? 0.25 : 0);
+    const contrario = (registro === "sastre" && estilo(zapato) === "relajado") || (registro === "relajado" && estilo(zapato) === "sastre");
+    const media = notas.reduce((suma, n) => suma + n, 0) / notas.length - Math.abs(nivel(zapato) - formalidad) * 0.12 - (contrario ? 0.25 : 0);
     if (!mejor || media > mejor.media) mejor = { zapato, media };
   }
   return mejor?.zapato ?? null;
@@ -254,8 +259,8 @@ function comunes(a, b, prenda) {
 }
 
 // Para la página de una prenda: hasta tres looks completos y variados que la incluyen,
-// empezando por la época del año en la que estamos.
-export function looksCon(prenda, todas, maximo = 3) {
+// empezando por la época del año en la que estamos. Con "soloEpoca" se ciñe a esa época.
+export function looksCon(prenda, todas, maximo = 3, soloEpoca = null) {
   const conjuntos = conjuntosCon(prenda, todas);
   const elegidos = [];
   // Un conjunto es nuevo si repite, como mucho, "repetidas" prendas de los ya elegidos
@@ -267,9 +272,10 @@ export function looksCon(prenda, todas, maximo = 3) {
     });
   const esCalzado = PAPEL[prenda.categoria] === "pies";
   const anadir = (conjunto, temporada) => {
-    if (!conjunto) return;
+    if (!conjunto || !temporada) return;
     const formalidad = Math.round(formalidadDe(conjunto.piezas));
     const zapato = calzadoPara(conjunto, temporada, todas, esCalzado ? prenda : null);
+    if (esCalzado && !zapato) return; // el look se monta sobre el calzado: si no es de esa época, no vale
     elegidos.push({
       // El conjunto se completa con calzado, si hay alguno que le vaya.
       piezas: zapato ? [...conjunto.piezas, { prenda: zapato, papel: "pies" }] : conjunto.piezas,
@@ -280,17 +286,19 @@ export function looksCon(prenda, todas, maximo = 3) {
 
   // Primero, el mejor look de cada época en la que se lleva la prenda.
   const ahora = temporadaActual();
-  const epocas = [ahora, ...TEMPORADAS.filter((t) => t !== ahora)].filter((t) => prenda.temporada.includes(t));
+  const epocas = (soloEpoca ? [soloEpoca] : [ahora, ...TEMPORADAS.filter((t) => t !== ahora)]).filter((t) => epocasDe(prenda).includes(t));
   for (const epoca of epocas) {
+    if (elegidos.length >= maximo) break;
     const deEpoca = conjuntos.filter((c) => c.temporadas.includes(epoca));
     anadir(deEpoca.find((c) => esNuevo(c, 0)) ?? deEpoca.find((c) => esNuevo(c, 1)), epoca);
   }
   // Después, los mejores que queden hasta completar: primero sin repetir ninguna prenda
-  // y, si no alcanza, repitiendo una.
+  // y, si no alcanza, repitiendo una. Cada uno con una época que valga para la prenda.
+  const epocaDe = (conjunto) => [ahora, ...conjunto.temporadas].find((t) => conjunto.temporadas.includes(t) && epocas.includes(t));
   for (const repetidas of [0, 1]) {
     for (const conjunto of conjuntos) {
       if (elegidos.length >= maximo) break;
-      if (esNuevo(conjunto, repetidas)) anadir(conjunto, conjunto.temporadas.includes(ahora) ? ahora : conjunto.temporadas[0]);
+      if (esNuevo(conjunto, repetidas)) anadir(conjunto, epocaDe(conjunto));
     }
   }
   return elegidos.slice(0, maximo);
@@ -301,12 +309,12 @@ export function looksCon(prenda, todas, maximo = 3) {
 export function looksDelDia(todas, maximo = 6) {
   const ahora = temporadaActual();
   const dia = Math.floor(Date.now() / 86_400_000);
-  const abajos = todas.filter((p) => PAPEL[p.categoria] === "abajo" && p.temporada.includes(ahora));
+  const abajos = todas.filter((p) => PAPEL[p.categoria] === "abajo" && epocasDe(p).includes(ahora));
   const vistos = new Set();
   const lista = [];
   for (let i = 0; i < abajos.length && lista.length < maximo; i++) {
     const prenda = abajos[(dia + i) % abajos.length];
-    const [look] = looksCon(prenda, todas, 1);
+    const [look] = looksCon(prenda, todas, 1, ahora);
     if (!look) continue;
     const clave = look.piezas.map((pieza) => pieza.prenda.id).sort().join(",");
     if (vistos.has(clave)) continue;

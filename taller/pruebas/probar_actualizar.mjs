@@ -5,7 +5,7 @@ const ORIGEN = process.argv[2], PUERTO = 8806;
 // Se trabaja sobre una copia de la app en la carpeta temporal, porque la prueba cambia archivos.
 const RAIZ = path.join(os.tmpdir(), "armario-prueba-actualizar");
 fs.rmSync(RAIZ, { recursive: true, force: true });
-fs.cpSync(ORIGEN, RAIZ, { recursive: true, filter: (f) => !/\/(\.git|taller)(\/|$)/.test(f) && !/\.(bin|wasm|mp4)$/.test(f) });
+fs.cpSync(ORIGEN, RAIZ, { recursive: true, filter: (f) => { const rel = path.relative(ORIGEN, f); return !/^(\.git|taller)(\/|$)/.test(rel) && !/\.(bin|wasm|mp4)$/.test(rel); } });
 const TIPOS = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".webmanifest": "application/manifest+json", ".png": "image/png", ".woff2": "font/woff2", ".jpg": "image/jpeg" };
 let peticiones = 0;
 const servidor = http.createServer((req, res) => {
@@ -26,6 +26,11 @@ let cargas = 0; p.on("load", () => cargas++);
 const BASE = `http://localhost:${PUERTO}/`;
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
+  console.log("0. sw.js y aparato.js hablan de la misma caché y la misma marca");
+  const sw = fs.readFileSync(path.join(ORIGEN, "sw.js"), "utf8"), ap = fs.readFileSync(path.join(ORIGEN, "aparato.js"), "utf8");
+  const cacheSw = sw.match(/const CACHE = "([^"]+)"/)?.[1], marcaSw = sw.match(/const MARCA = "([^"]+)"/)?.[1];
+  comprobar("mismo nombre de caché y de marca en los dos archivos", Boolean(cacheSw) && ap.includes(`caches.open("${cacheSw}")`) && Boolean(marcaSw) && ap.includes(`cache.match("${marcaSw}")`), `${cacheSw} / ${marcaSw}`);
+
   console.log("1. Primera apertura: se instala el programa en el aparato");
   await p.goto(BASE);
   await p.waitForSelector("#bienvenida:not([hidden])");

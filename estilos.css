@@ -5,7 +5,7 @@
   font-family: "Cormorant";
   src: url("fuentes/cormorant.woff2") format("woff2");
   font-weight: 300 700;
-  font-display: swap;
+  font-display: block; /* la fuente está precargada y guardada: mejor un instante en blanco que un cambio de letra */
 }
 
 :root {
